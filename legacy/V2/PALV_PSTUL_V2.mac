@@ -1,0 +1,41 @@
+
+!! 6.3.2   NÓ DO CENTRO DO VÃO PARA CARGA DISTRIBUÍDA                                             !!
+!!                                                                                                !!
+ALLSEL
+*if,LoadType2,EQ,1,THEN
+
+   !! 6.3.2.1   DEFINIR VARIÁVEIS                                                                 !!
+   ! Solução nodal no nó de aplicação de carga (deslocamento vertical)
+   NSOL,5,FNode4,U,Y,DISP_Y4
+
+   !! 6.3.2.2   DEFINIR PARÂMETROS                                                                !!
+   ! Fator de carga
+   *vlen,LastSubstep,1
+   *del,LoadFactors
+   *dim,LoadFactors,ARRAY,LastSubstep
+   VGET,LoadFactors(1),1
+   ! Deslocamento em Y do nó
+   *vlen,LastSubstep,1
+   *del,FNode4_YDisp
+   *dim,FNode4_YDisp,ARRAY,LastSubstep
+   VGET,FNode4_YDisp(1),5
+   *vlen
+
+   !! 6.3.2.3   CAPTURAR IMAGENS DOS GRÁFICOS                                                     !!
+   ! Variável em x: deslocamento do nó
+   XVAR,5
+   ! Definir intervalo do eixo X
+   *vscfun,GraphXMin,MIN,FNode4_YDisp
+   *vscfun,GraphXMax,MAX,FNode4_YDisp
+   /xrange,GraphXMin,GraphXMax
+   ! Definir intervalo do eixo Y
+   *vscfun,GraphYMin,MIN,LoadFactors
+   *vscfun,GraphYMax,MAX,LoadFactors
+   /yrange,GraphYMin,GraphYMax
+   ! Variável em Y: fator de carga
+   /show
+   PLVAR,1
+   PALV_TAKEPIC,'(U4)'
+
+*endif
+

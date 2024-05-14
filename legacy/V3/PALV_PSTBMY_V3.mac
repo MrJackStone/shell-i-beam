@@ -1,0 +1,58 @@
+
+!! 6.3.6   NÓS DE INTRODUÇÃO DO MOMENTO FLETOR EM TORNO DE Z NAS EXTREMIDADES                     !!
+!!                                                                                                !!
+*if,LoadType6,EQ,1,THEN
+
+   !! 6.3.6.1   DEFINIR VARIÁVEIS                                                                 !!
+   ! Solução nodal na extremidade esquerda (rotação em torno de Z)
+   NSOL,BMY1_VarNum,FNode6,ROT,Y,DISP_R8
+   ! Solução nodal na extremidade direita (rotação em torno de Z)
+   NSOL,BMY2_VarNum,FNode7,ROT,Y,DISP_R9
+
+   !! 6.3.6.2   DEFINIR PARÂMETROS                                                                !!
+   ! Fator de carga
+   *vlen,LastSubstep,1
+   *del,LoadFactors
+   *dim,LoadFactors,ARRAY,LastSubstep
+   VGET,LoadFactors(1),1
+   ! Rotação em torno de Z do primeiro nó
+   *vlen,LastSubstep,1
+   *del,FNode6_YRot
+   *dim,FNode6_YRot,ARRAY,LastSubstep
+   VGET,FNode6_YRot(1),BMY1_VarNum
+   ! Rotação em torno de Z do segundo nó
+   *vlen,LastSubstep,1
+   *del,FNode7_YRot
+   *dim,FNode7_YRot,ARRAY,LastSubstep
+   VGET,FNode7_YRot(1),BMY2_VarNum
+   *vlen
+
+   !! 6.3.6.3   CAPTURAR IMAGENS DOS GRÁFICOS                                                     !!
+   ! Variável em x: deslocamento do primeiro nó
+   XVAR,BMY1_VarNum
+   ! Definir intervalo do eixo X
+   *vscfun,GraphXMin,MIN,FNode6_YRot
+   *vscfun,GraphXMax,MAX,FNode6_YRot
+   /xrange,GraphXMin,GraphXMax
+   ! Definir intervalo do eixo Y
+   *vscfun,GraphYMin,MIN,LoadFactors
+   *vscfun,GraphYMax,MAX,LoadFactors
+   /yrange,GraphYMin,GraphYMax
+   ! Variável em Y: fator de carga
+   /show
+   PLVAR,1
+   PALV_TAKEPIC,'(U8)'
+
+   ! Variável em x: deslocamento do segundo nó
+   XVAR,BMY2_VarNum
+   ! Definir intervalo do eixo X
+   *vscfun,GraphXMin,MIN,FNode7_YRot
+   *vscfun,GraphXMax,MAX,FNode7_YRot
+   /xrange,GraphXMin,GraphXMax
+   ! Variável em Y: fator de carga
+   /show
+   PLVAR,1
+   PALV_TAKEPIC,'(U9)'
+
+*endif
+

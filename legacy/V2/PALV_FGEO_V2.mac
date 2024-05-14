@@ -1,0 +1,226 @@
+!! 2.1.1   DETERMINAÇÃO COMPLETA DA GEOMETRIA                                                     !!
+!!                                                                                                !!
+! Atribuir 0 (zero) às variáveis não deifnidas:
+! Nome do perfil
+*get,pt_name,PARM,name,TYPE
+*if,pt_name,EQ,-1,THEN
+   name='none'
+*endif
+! Comprimento da barra
+*get,pt_L,PARM,L,TYPE
+*if,pt_L,EQ,-1,THEN
+   L=0
+*endif
+! Largura da mesa superior
+*get,pt_BFS,PARM,bfs,TYPE
+*if,pt_BFS,EQ,-1,THEN
+   bfs=0
+*endif
+! Largura da mesa inferior
+*get,pt_BFI,PARM,bfi,TYPE
+*if,pt_BFI,EQ,-1,THEN
+   bfi=0
+*endif
+! Largura das mesas (dupla simetria)
+*get,pt_BF,PARM,bf,TYPE
+*if,pt_BF,EQ,-1,THEN
+   bf=0
+*endif
+! Altura externa total
+*get,pt_DG,PARM,dg,TYPE
+*if,pt_DG,EQ,-1,THEN
+   dg=0
+*endif
+! Altura da abertura
+*get,pt_D0,PARM,d0,TYPE
+*if,pt_D0,EQ,-1,THEN
+   d0=0
+*endif
+! Altura do T superior
+*get,pt_DTS,PARM,dts,TYPE
+*if,pt_DTS,EQ,-1,THEN
+   dts=0
+*endif
+! Altura do T inferior
+*get,pt_DTI,PARM,dti,TYPE
+*if,pt_DTI,EQ,-1,THEN
+   dti=0
+*endif
+! Espessura da mesa superior
+*get,pt_TFS,PARM,tfs,TYPE
+*if,pt_TFS,EQ,-1,THEN
+   tfs=0
+*endif
+! Espessura da mesa inferior
+*get,pt_TFI,PARM,tfi,TYPE
+*if,pt_TFI,EQ,-1,THEN
+   tfi=0
+*endif
+! Espessura da alma (metade superior)
+*get,pt_TWS,PARM,tws,TYPE
+*if,pt_TWS,EQ,-1,THEN
+   tws=0
+*endif
+! Espessura da alma (metade inferior)
+*get,pt_TWI,PARM,twi,TYPE
+*if,pt_TWI,EQ,-1,THEN
+   twi=0
+*endif
+! Largura do montante
+*get,pt_sw,PARM,sw,TYPE
+*if,pt_sw,EQ,-1,THEN
+   sw=0
+*endif
+! Largura da abertura
+*get,pt_s0,PARM,s0,TYPE
+*if,pt_s0,EQ,-1,THEN
+   s0=0
+*endif
+! Distância entre eixos de aberturas consecutivas
+*get,pt_se,PARM,se,TYPE
+*if,pt_se,EQ,-1,THEN
+   se=0
+*endif
+! Ângulo da face inclinada da abertura
+*get,pt_theta,PARM,theta,TYPE
+*if,pt_theta,EQ,-1,THEN
+   theta=0
+*endif
+! Largura do enrijecedor de abertura
+*get,pt_bos,PARM,bos,TYPE
+*if,pt_bos,EQ,-1,THEN
+   bos=0
+*endif
+! Largura do montante inicial
+*get,pt_swi,PARM,swi,TYPE
+*if,pt_swi,EQ,-1,THEN
+   swi=0
+*endif
+! Largura do montante final
+*get,pt_swf,PARM,swf,TYPE
+*if,pt_swf,EQ,-1,THEN
+   swf=0
+*endif
+
+! Determinar largura das mesas
+*if,bfs,EQ,0,THEN
+   *if,bfi,EQ,0,THEN
+      *if,bf,EQ,0,THEN
+         ! Impossível determinar a largura das mesas: exibir mensagem de erro
+         *msg,ERROR,0
+PALV_FGEO ERROR: bf UNDETERMINED (%I).
+      *else
+         bfs=bf
+         bfi=bf
+      *endif
+   *else
+      bfs=bfi
+   *endif
+*else
+   *if,bfi,EQ,0,THEN
+      bfi=bfs
+   *endif
+*endif
+
+! Determinar espessura das mesas
+*if,tfs,EQ,0,THEN
+   *if,tfi,EQ,0,THEN
+      *if,tf,EQ,0,THEN
+         ! Impossível determinar a espessura das mesas: exibir mensagem de erro
+         *msg,ERROR,1
+PALV_FGEO ERROR: tf UNDETERMINED (%I).
+      *else
+         tfs=tf
+         tfi=tf
+      *endif
+   *else
+      tfs=tfi
+   *endif
+*else
+   *if,tfi,EQ,0,THEN
+      tfi=tfs
+   *endif
+*endif
+
+! Determinar espessura da alma (metades superior & inferior)
+*if,tws,EQ,0,THEN
+   *if,twi,EQ,0,THEN
+      *if,tw,EQ,0,THEN
+         ! Impossível determinar a espessura da alma: exibir mensagem de erro
+         *msg,ERROR,2
+PALV_FGEO ERROR: tw UNDETERMINED (%I).
+      *else
+         tws=tw
+         twi=tw
+      *endif
+   *else
+      tws=twi
+   *endif
+*else
+   *if,twi,EQ,0,THEN
+      twi=tws
+   *endif
+*endif
+
+! Viga sem aberturas
+*get,pt_t,PARM,t,TYPE
+*if,pt_t,EQ,0,THEN
+   *if,t,EQ,0,THEN
+      d0=dg/2
+   *endif
+*endif
+
+! Determinar altura da peça, da abertura e dos Ts
+*if,dts,EQ,0,THEN
+   *if,dg,EQ,0,THEN
+      ! Impossível determinar a altura do perfil: exibir mensagem de erro
+      *msg,ERROR,3
+PALV_FGEO ERROR: dg UNDETERMINED (%I).
+   *else
+      *if,d0,EQ,0,THEN
+         ! Impossível determinar a altura do perfil: exibir mensagem de erro
+         *msg,ERROR,4
+PALV_FGEO ERROR: d0 UNDETERMINED (%I).
+      *else
+         *if,dti,EQ,0,THEN
+            dts=(dg-d0)/2
+            dti=(dg-d0)/2
+         *else
+            dts=dg-d0-dti
+         *endif
+      *endif
+   *endif
+*else
+   *if,dg,EQ,0,THEN
+      *if,d0,EQ,0,THEN
+         ! Impossível determinar a altura do perfil: exibir mensagem de erro
+         *msg,ERROR,5
+PALV_FGEO ERROR: dg UNDETERMINED (%I).
+      *else
+         *if,dti,EQ,0,THEN
+            dti=dts
+            dg=dti+d0+dts
+         *else
+            dg=dti+d0+dts
+         *endif
+      *endif
+   *else
+      *if,d0,EQ,0,THEN
+         *if,dti,EQ,0,THEN
+            dti=dts
+            d0=dg-dts-dti
+         *else
+            d0=dg-dti-dts
+         *endif
+      *else
+         dti=dg-d0-dts
+      *endif
+   *endif
+*endif
+
+! Calcular altura do T superior (até o plano médio da mesa superior)
+dtms=dts-(1/2)*tfs
+! Calcular altura do T inferior (até o plano médio da mesa inferior)
+dtmi=dti-(1/2)*tfi
+
+

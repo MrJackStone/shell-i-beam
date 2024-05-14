@@ -1,0 +1,31 @@
+/post1
+
+substep=109
+
+*get,t0,ACTIVE,,TIME,WALL
+
+ALLSEL
+*get,NCount,NODE,,COUNT
+
+SET,,substep
+node=0
+*do,j,1,NCount,1
+    node=NDNEXT(node)
+    *get,epto1,NODE,node,epto,1
+    *if,epto1,GT,maxe,THEN
+        maxe=epto1
+        maxnode=node
+    *endif
+*enddo
+
+*del,allepto
+*dim,allepto,ARRAY,substep
+*do,i,1,substep,1
+    SET,,i
+    *get,epto1,NODE,maxnode,epto,1
+    allepto(i)=epto1
+*enddo
+
+*get,t1,ACTIVE,,TIME,WALL
+
+deltaT=t1-t0

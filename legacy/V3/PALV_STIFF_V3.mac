@@ -1,0 +1,162 @@
+
+!!                                                                                                !!
+!! 3.6   CRIAR ENRIJECEDORES DE ALMA                                                              !!
+!!                                                                                                !!
+! Caso a inclusão de enrijecedores de alma esteja habilitada
+*if,WebStiffStatus,EQ,1,THEN
+
+   ! Calcular perímetro do retângulo do enrijecedor da alma
+   PerYMin=VIGA_y0
+   PerZMin=VIGA_z0-(bfMin/2)
+   PerYMax=VIGA_y0+VIGA_dm
+   PerZMax=VIGA_z0+(bfMin/2)
+   PerYMid=VIGA_y0+yOpLine
+   PerZMid=VIGA_z0
+
+   ! Determinar se os enrijecedores de alma serão divididos em função dos enrijecedores de abertura
+   div8=0
+   *if,VIGA_bos,GT,0,THEN
+      *if,VIGA_bos,LT,bfMin/2,THEN
+         IntZNeg=VIGA_z0-VIGA_bos
+         IntZPos=VIGA_z0+VIGA_bos
+         div8=1
+      *endif
+   *endif
+
+   ! Inicializar vetor de posições de enrijecedor de alma
+   *del,ARRADD_ARR_input
+   *dim,ARRADD_ARR_input,ARRAY,1
+   ARRADD_ARR_input(1)=VIGA_x0
+
+   !! 3.6.1   APOIO ESQUERDO                                                                      !!
+   !!                                                                                             !!
+   *if,WebStiff_LS,EQ,1,THEN
+      ARRADD_ARR_new=VIGA_x0
+      ARRADD
+      *del,ARRADD_ARR_input
+      *vfun,ARRADD_ARR_input,COPY,ARRADD_ARR_output
+   *endif
+
+   !! 3.6.2   APOIO DIREITO                                                                       !!
+   !!                                                                                             !!
+   *if,WebStiff_RS,EQ,1,THEN
+      ARRADD_ARR_new=VIGA_x0+VIGA_L
+      ARRADD
+      *del,ARRADD_ARR_input
+      *vfun,ARRADD_ARR_input,COPY,ARRADD_ARR_output
+   *endif
+
+   !! 3.6.3   APOIOS INTERMEDIÁRIOS                                                               !!
+   !!                                                                                             !!
+   *if,WebStiff_IS,EQ,1,AND,IS_Status,EQ,1,THEN
+      *if,IS_Quant,GE,1,THEN
+         *del,ARRADD_ARR_new
+         *voper,ARRADD_ARR_new,IS_Pos,ADD,VIGA_x0
+         ARRADD
+         *del,ARRADD_ARR_input
+         *vfun,ARRADD_ARR_input,COPY,ARRADD_ARR_output
+      *endif
+   *endif
+
+   !! 3.6.4   PONTOS DE INTRODUÇÃO DE CARGA DA FLEXÃO DE 4 PONTOS                                 !!
+   !!                                                                                             !!
+   *if,WebStiff_4P,EQ,1,AND,LoadType1,EQ,1,THEN
+      ARRADD_ARR_new=VIGA_x0+(VIGA_L-LoadDistance)/2
+      ARRADD
+      *del,ARRADD_ARR_input
+      *vfun,ARRADD_ARR_input,COPY,ARRADD_ARR_output
+      ARRADD_ARR_new=VIGA_x0+(VIGA_L+LoadDistance)/2
+      ARRADD
+      *del,ARRADD_ARR_input
+      *vfun,ARRADD_ARR_input,COPY,ARRADD_ARR_output
+   *endif
+
+   !! 3.6.5   PONTO DE INTRODUÇÃO DE CARGA CONCENTRADA VERTICAL                                   !!
+   !!                                                                                             !!
+   *if,WebStiff_PL,EQ,1,AND,LoadType3,GE,1,THEN
+      *do,i,1,LoadType3,1
+         loadDir=PL_Direction(i)
+         *if,loadDir,EQ,2,THEN
+            ARRADD_ARR_new=VIGA_x0+PL_Pos(i)
+            ARRADD
+            *del,ARRADD_ARR_input
+            *vfun,ARRADD_ARR_input,COPY,ARRADD_ARR_output
+         *endif
+      *enddo
+   *endif
+
+   !! 3.6.6   PONTO DE INTRODUÇÃO DE CARGA CONCENTRADA LATERAL                                    !!
+   !!                                                                                             !!
+   *if,WebStiff_LPL,EQ,1,AND,LoadType3,GE,1,THEN
+      *do,i,1,LoadType3,1
+         loadDir=PL_Direction(i)
+         *if,loadDir,EQ,3,THEN
+            ARRADD_ARR_new=VIGA_x0+PL_Pos(i)
+            ARRADD
+            *del,ARRADD_ARR_input
+            *vfun,ARRADD_ARR_input,COPY,ARRADD_ARR_output
+         *endif
+      *enddo
+   *endif
+
+   !! 3.6.7   POSIÇÕES ARBITRÁRIAS                                                                !!
+   !!                                                                                             !!
+   *if,WebStiff_X,EQ,1,AND,WebStiff_XQuant,GT,0,THEN
+      *del,ARRADD_ARR_new
+      *voper,ARRADD_ARR_new,WebStiff_XPos,ADD,VIGA_x0
+      ARRADD
+      *del,ARRADD_ARR_input
+      *vfun,ARRADD_ARR_input,COPY,ARRADD_ARR_output
+   *endif
+
+   !! 3.6.8   CRIAR ENRIJECEDORES                                                                 !!
+   !!                                                                                             !!
+   ! Organizar vetor de posições de enrijecedores:
+   ! Remover primeiro elemento do vetor (definido na inicialização)
+   *get,StiffCount,PARM,ARRADD_ARR_output,DIM,X
+   *del,ARRUNIQ_ARR_input
+   *dim,ARRUNIQ_ARR_input,ARRAY,StiffCount-1
+   *do,nthStiff,2,StiffCount
+      ARRUNIQ_ARR_input(nthStiff-1)=ARRADD_ARR_output(nthStiff)
+   *enddo
+   ! Organizar elementos do vetor em ordem crescente
+   *vfun,ARRUNIQ_ARR_input,ASORT
+   ! Remover elementos repetidos do vetor de posições de enrijecedor de alma
+   ARRUNIQ
+   *del,ARRLIM_ARR_input
+   *vfun,ARRLIM_ARR_input,COPY,ARRUNIQ_ARR_output
+   ! Remover posições fora do intervalo válido
+   ARRLIM,VIGA_x0,1,VIGA_x0+VIGA_L,1
+   *get,ParType,PARM,ARRLIM_ARR_output,TYPE
+   *if,ParType,EQ,1,THEN
+      *del,AllStiffPos
+      *vfun,AllStiffPos,COPY,ARRLIM_ARR_output
+      ! Criar enrijecedores de alma nas devidas posições
+      *get,StiffCount,PARM,AllStiffPos,DIM,X
+      *do,nthStiff,1,StiffCount,1
+         XPos=AllStiffPos(nthStiff)
+         *if,div8,EQ,0,THEN
+            SLICEYZ,XPos,PerYMin,PerZMin,PerYMid,PerZMid,1
+            SLICEYZ,XPos,PerYMin,PerZMid,PerYMid,PerZMax,1
+            SLICEYZ,XPos,PerYMid,PerZMin,PerYMax,PerZMid,1
+            SLICEYZ,XPos,PerYMid,PerZMid,PerYMax,PerZMax,1
+         *else
+            SLICEYZ,XPos,PerYMin,PerZMin,PerYMid,IntZNeg,1
+            SLICEYZ,XPos,PerYMin,IntZNeg,PerYMid,PerZMid,1
+            SLICEYZ,XPos,PerYMin,PerZMid,PerYMid,IntZPos,1
+            SLICEYZ,XPos,PerYMin,IntZPos,PerYMid,PerZMax,1
+            SLICEYZ,XPos,PerYMid,PerZMin,PerYMax,IntZNeg,1
+            SLICEYZ,XPos,PerYMid,IntZNeg,PerYMax,PerZMid,1
+            SLICEYZ,XPos,PerYMid,PerZMid,PerYMax,IntZPos,1
+            SLICEYZ,XPos,PerYMid,IntZPos,PerYMax,PerZMax,1
+         *endif
+      *enddo
+   *else
+      *del,AllStiffPos
+      AllStiffPos=0
+   *endif
+*endif
+
+! Mesclar entidades do solid model
+NUMMRG,KP,1E-8
+

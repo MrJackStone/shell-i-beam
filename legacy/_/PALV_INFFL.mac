@@ -1,0 +1,70 @@
+
+!! 4.1.6   FLEXÃO DA MESA INFERIOR                                                                !!
+!!                                                                                                !!
+*if,GeomImperf7,NE,0,THEN
+   ! Renomear arquivo
+   FINISH
+   /filname,'GI7FName',1
+   ! Carregar modelo
+   /prep7
+   RESUME,'BaseModel',,,0,1
+   ! Inicializar load step
+   /solu
+   ANTYPE,0
+   LSCLEAR,ALL
+   NLGEOM,OFF
+   ALLSEL
+   SELTOL,1e-8
+   ! Aplicar carga
+   NSEL,S,LOC,Z,VIGA_z0+(VIGA_bf/2)
+   NSEL,A,LOC,Z,VIGA_z0-(VIGA_bf/2)
+   NSEL,R,LOC,Y,VIGA_y0
+   *get,NodeCount,NODE,0,COUNT
+   NodalLoad=GeomImperfLoad*VIGA_L/NodeCount
+   F,ALL,FY,NodalLoad
+   ! Apoios
+   ALLSEL
+   NSEL,S,LOC,Y,VIGA_y0
+   NSEL,R,LOC,Z,VIGA_z0
+   D,ALL,UZ,0,UY,,,ROTX
+   NSEL,R,LOC,X,VIGA_x0
+   D,ALL,UX,0
+   NSEL,S,LOC,Y,VIGA_y0+VIGA_dt
+   D,ALL,ALL,0
+   ! Solucionar load step
+   ALLSEL
+   SOLVE
+   ! Ler resultados
+   /post1
+   ALLSEL
+   SET,FIRST
+   ! Plotar deformada
+   /show
+   PLNSOL,U,SUM
+   ! Nome do arquivo de imagem a ser salvo
+   imgSuffix=' (I7)'
+   imgName=STRCAT(FileName,imgSuffix)
+   ! Fotografar deformada
+   TAKEPIC,imgName,imgRes
+   ! Selecionar nós das bordas da mesa inferior
+   NSEL,S,LOC,Z,VIGA_z0+(VIGA_bf/2)
+   NSEL,A,LOC,Z,VIGA_z0-(VIGA_bf/2)
+   NSEL,R,LOC,Y,VIGA_y0
+   *get,NodeCount,NODE,0,COUNT
+   nthNode=0
+   maxIDisp=0
+   ! Obter máximo deslocamento em Y (módulo)
+   *do,i,1,NodeCount,1
+      nthNode=NDNEXT(nthNode)
+      *get,iDisp,NODE,nthNode,U,Y
+      iDisp=ABS(iDisp)
+      *if,iDisp,GT,maxIDisp,THEN
+         maxIDisp=iDisp
+      *endif
+   *enddo
+   ! Calcular o fator de introdução da imperfeição geométrica tipo 7
+   UpGeomFactor7=GeomImperf7/maxIDisp
+   ALLSEL
+   FINISH
+*endif
+

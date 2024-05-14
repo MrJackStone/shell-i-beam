@@ -1,0 +1,722 @@
+!<blank>
+!! —————————————————————————————————————————————————————————————————————————————————————————————— !!
+!!                                                                                                !!
+!! 1.   DADOS DE ENTRADA                                                                          !!
+!!                                                                                                !!
+!! —————————————————————————————————————————————————————————————————————————————————————————————— !!
+! Unidades do SI: N, m, kg, s
+!<blank>
+!!                                                                                                !!
+!! 1.0   IDENTIFICAÇÃO DO MODELO                                                                  !!
+!!                                                                                                !!
+! Referência da publicação
+libReference=
+! Identificador do modelo
+modelID=
+!<blank>
+!<blank>
+!!                                                                                                !!
+!! 1.1   GEOMETRIA DA PEÇA                                                                        !!
+!!                                                                                                !!
+! Fabricação da seção original: [1] Laminado / [2] Soldado
+psFab=
+! Tipo de abertura: [0] Sem aberturas / [1] Hexagonal / [2] Circular
+t=
+! Tipo de fabricação da peça alveolar: [0] Convencional / [1] Modificada
+fab=
+! Comprimento total da peça
+L=
+! Nome do perfil
+name=
+! Largura da mesa superior do perfil
+bfs=
+! Largura da mesa inferior do perfil
+bfi=
+! Altura total do perfil
+dg=
+! Altura do T superior
+dts=
+! Altura do T inferior
+dti=
+! Altura da abertura
+d0=
+! Largura do montante da alma
+sw=
+! Largura da abertura
+s0=
+! Espaçamento entre aberturas
+se=
+! Ângulo das aberturas
+theta=
+! Largura do montante inicial
+swi=
+! Largura do montante final
+swf=
+! Largura dos enrijecedores de abertura
+bos=
+! Fechar aberturas
+closeOp=
+*if,closeOp,GT,0,THEN
+   *del,closedOpenings
+   *dim,closedOpenings,ARRAY,closeOp
+   closedOpenings=
+*endif
+!<blank>
+!<blank>
+!!                                                                                                !!
+!! 1.2   SEÇÕES TRANSVERSAIS                                                                      !!
+!!                                                                                                !!
+! Espessura da mesa superior
+tfs=
+! Espessura da mesa inferior
+tfi=
+! Espessura da alma (metade superior)
+tws=
+! Espessura da alma (metade inferior)
+twi=
+! Espessura dos enrijecedores de alma
+ts=
+! Espessura dos enrijecedores de abertura
+tos=
+! Incremento na espessura da mesa superior
+tfs_EXTRA=
+! Incremento na espessura da mesa inferior
+tfi_EXTRA=
+!<blank>
+!<blank>
+!!                                                                                                !!
+!! 1.3   ENRIJECEDORES DE ALMA                                                                    !!
+!!                                                                                                !!
+! Incluir enrijecedores de alma
+!    [0] Desativar
+!    [1] Ativar
+WebStiffStatus=
+!<blank>
+!! 1.3.1   APOIOS                                                                                 !!
+!!                                                                                                !!
+! Incluir enrijecedores de alma nos apoios esquerdo (LS) e direito (RS)
+!    [0] Desativar
+!    [1] Ativar
+WebStiff_LS=
+WebStiff_RS=
+!<blank>
+!! 1.3.2   PONTOS DE INTRODUÇÃO DE CARGA DA FLEXÃO DE 4 PONTOS                                    !!
+!!                                                                                                !!
+! Incluir enrijecedores de alma nos pontos de introdução de carga da flexão de 4 pontos
+!    [0] Desativar
+!    [1] Ativar
+WebStiff_4P=
+!<blank>
+!! 1.3.3   PONTO DE INTRODUÇÃO DE CARGA CONCENTRADA                                               !!
+!!                                                                                                !!
+! Incluir enrijecedores de alma no ponto de introdução de carga concentrada
+!    [0] Desativar
+!    [1] Ativar
+WebStiff_PL=
+!<blank>
+!! 1.3.4   POSIÇÕES ARBITRÁRIAS                                                                   !!
+!!                                                                                                !!
+! Enrijecedores em posições arbitrárias
+!    [0] Desativar
+!    [1] Ativar
+WebStiff_X=
+WebStiff_XQuant=
+*if,WebStiff_X,EQ,1,AND,WebStiff_XQuant,GT,0,THEN
+   *del,WebStiff_XPos
+   *dim,WebStiff_XPos,ARRAY,WebStiff_XQuant
+   WebStiff_XPos=
+*endif
+!<blank>
+!<blank>
+!!                                                                                                !!
+!! 1.4   PROPRIEDADES DO MATERIAL                                                                 !!
+!!                                                                                                !!
+!<blank>
+! Fator global de redução do módulo de elasticidade
+ERedFact=
+! Fator global de redução da tensão de escoamento
+fyRedFact=
+!<blank>
+!! 1.4.1   MATERIAL DA MESA SUPERIOR                                                              !!
+!!                                                                                                !!
+! Módulo de elasticidade
+MesaSup_E=
+! Tensão de escoamento
+MesaSup_fy=
+! Coeficiente de Poisson
+MesaSup_v=
+! Densidade
+MesaSup_p=
+! Tipo de diagrama tensão deformação:
+!    [0] Bilinear sem endurecimento
+!    [1] Bilinear com endurecimento
+!    [2] Multilinear
+MesaSup_law=
+! Endurecimento
+MesaSup_hard=
+! Propriedades de diagrama multilinear
+! Número de pontos do gráfico
+MesaSup_ptCount=
+*if,MesaSup_law,EQ,2,AND,MesaSup_ptCount,GT,0,THEN
+   ! Diagrama multilinear: vetor de tensões
+   *del,MesaSup_sVec
+   *dim,MesaSup_sVec,ARRAY,MesaSup_ptCount
+   MesaSup_sVec=
+   ! Diagrama multilinear: vetor de deformações
+   *del,MesaSup_eVec
+   *dim,MesaSup_eVec,ARRAY,MesaSup_ptCount
+   MesaSup_eVec=
+*endif
+!<blank>
+!! 1.4.2   MATERIAL DA MESA INFERIOR                                                              !!
+!!                                                                                                !!
+! Módulo de elasticidade
+MesaInf_E=
+! Tensão de escoamento
+MesaInf_fy=
+! Coeficiente de Poisson
+MesaInf_v=
+! Densidade
+MesaInf_p=
+! Tipo de diagrama tensão deformação:
+!    [0] Bilinear sem endurecimento
+!    [1] Bilinear com endurecimento
+!    [2] Multilinear
+MesaInf_law=
+! Endurecimento
+MesaInf_hard=
+! Propriedades de diagrama multilinear
+! Número de pontos do gráfico
+MesaInf_ptCount=
+*if,MesaInf_law,EQ,2,AND,MesaInf_ptCount,GT,0,THEN
+   ! Diagrama multilinear: vetor de tensões
+   *del,MesaInf_sVec
+   *dim,MesaInf_sVec,ARRAY,MesaInf_ptCount
+   MesaInf_sVec=
+   ! Diagrama multilinear: vetor de deformações
+   *del,MesaInf_eVec
+   *dim,MesaInf_eVec,ARRAY,MesaInf_ptCount
+   MesaInf_eVec=
+*endif
+!<blank>
+!! 1.4.3   MATERIAL DA ALMA (METADE SUPERIOR)                                                     !!
+!!                                                                                                !!
+! Módulo de elasticidade
+AlmaSup_E=
+! Tensão de escoamento
+AlmaSup_fy=
+! Coeficiente de Poisson
+AlmaSup_v=
+! Densidade
+AlmaSup_p=
+! Tipo de diagrama tensão deformação:
+!    [0] Bilinear sem endurecimento
+!    [1] Bilinear com endurecimento
+!    [2] Multilinear
+AlmaSup_law=
+! Endurecimento
+AlmaSup_hard=
+! Propriedades de diagrama multilinear
+! Número de pontos do gráfico
+AlmaSup_ptCount=
+*if,AlmaSup_law,EQ,2,AND,AlmaSup_ptCount,GT,0,THEN
+   ! Diagrama multilinear: vetor de tensões
+   *del,AlmaSup_sVec
+   *dim,AlmaSup_sVec,ARRAY,AlmaSup_ptCount
+   AlmaSup_sVec=
+   ! Diagrama multilinear: vetor de deformações
+   *del,AlmaSup_eVec
+   *dim,AlmaSup_eVec,ARRAY,AlmaSup_ptCount
+   AlmaSup_eVec=
+*endif
+!<blank>
+!! 1.4.4   MATERIAL DA ALMA (METADE INFERIOR)                                                     !!
+!!                                                                                                !!
+! Módulo de elasticidade
+AlmaInf_E=
+! Tensão de escoamento
+AlmaInf_fy=
+! Coeficiente de Poisson
+AlmaInf_v=
+! Densidade
+AlmaInf_p=
+! Tipo de diagrama tensão deformação:
+!    [0] Bilinear sem endurecimento
+!    [1] Bilinear com endurecimento
+!    [2] Multilinear
+AlmaInf_law=
+! Endurecimento
+AlmaInf_hard=
+! Propriedades de diagrama multilinear
+! Número de pontos do gráfico
+AlmaInf_ptCount=
+*if,AlmaInf_law,EQ,2,AND,AlmaInf_ptCount,GT,0,THEN
+   ! Diagrama multilinear: vetor de tensões
+   *del,AlmaInf_sVec
+   *dim,AlmaInf_sVec,ARRAY,AlmaInf_ptCount
+   AlmaInf_sVec=
+   ! Diagrama multilinear: vetor de deformações
+   *del,AlmaInf_eVec
+   *dim,AlmaInf_eVec,ARRAY,AlmaInf_ptCount
+   AlmaInf_eVec=
+*endif
+!<blank>
+!! 1.4.5   MATERIAL DOS ENRIJECEDORES                                                             !!
+!!                                                                                                !!
+! Módulo de elasticidade
+Enrij_E=
+! Tensão de escoamento
+Enrij_fy=
+! Coeficiente de Poisson
+Enrij_v=
+! Densidade
+Enrij_p=
+! Tipo de diagrama tensão deformação:
+!    [0] Bilinear sem endurecimento
+!    [1] Bilinear com endurecimento
+!    [2] Multilinear
+Enrij_law=
+! Endurecimento
+Enrij_hard=
+! Propriedades de diagrama multilinear
+! Número de pontos do gráfico
+Enrij_ptCount=
+*if,Enrij_law,EQ,2,AND,Enrij_ptCount,GT,0,THEN
+   ! Diagrama multilinear: vetor de tensões
+   *del,Enrij_sVec
+   *dim,Enrij_sVec,ARRAY,Enrij_ptCount
+   Enrij_sVec=
+   ! Diagrama multilinear: vetor de deformações
+   *del,Enrij_eVec
+   *dim,Enrij_eVec,ARRAY,Enrij_ptCount
+   Enrij_eVec=
+*endif
+!<blank>
+!<blank>
+!!                                                                                                !!
+!! 1.5   CARREGAMENTO APLICADO                                                                    !!
+!!                                                                                                !!
+! Determinar os tipos de carregamento a aplicar e os parâmetros de cada carregamento
+!<blank>
+! Valor da carga aplicada para cálculo das imperfeições geométricas
+GeomImperfLoad=
+! Aceleração da gravidade (para consideração do peso próprio)
+! [0]   Desativar
+! [1]   Ativar (valor padrão: 9.81m/s²)
+! [<>1] Multiplicar pelo valor padrão
+GAcel=
+!<blank>
+!! 1.5.1   FLEXÃO DE QUATRO PONTOS                                                                !!
+!!                                                                                                !!
+! Ativar (1) ou desativar (0) este tipo de carga
+LoadType1=
+! Valor total da carga aplicada
+Total4PointLoad=
+! Distância entre pontos de aplicação de carga
+LoadDistance=
+!<blank>
+!! 1.5.2   CARREGAMENTO VERTICAL UNIFORMEMENTE DISTRIBUÍDO                                        !!
+!!                                                                                                !!
+! Ativar (1) ou desativar (0) este tipo de carga
+LoadType2=
+! Valor da carga distribuída
+DistributedLoad=
+!<blank>
+!! 1.5.3   CARGA CONCENTRADA                                                                      !!
+!!                                                                                                !!
+! [0]  Desativar este tipo de carga
+! [1]  Ativar este tipo de carga (carga única)
+! [>1] Ativar este tipo de carga: múltiplas cargas concentradas
+LoadType3=
+! Definição da(s) carga(s)
+*if,LoadType3,EQ,1,THEN
+   ! Valor da carga aplicada
+   PointLoadValue=
+   ! Posição de aplicação da carga ao longo da peça
+   PointLoadPos=
+*elseif,LoadType3,GT,1,THEN
+   ! Valor da carga aplicada
+   *del,PointLoadValue
+   *dim,PointLoadValue,ARRAY,LoadType3
+   PointLoadValue=
+   ! Posição de aplicação da carga ao longo da peça
+   *del,PointLoadPos
+   *dim,PointLoadPos,ARRAY,LoadType3
+   PointLoadPos=
+*endif
+!<blank>
+!! 1.5.4   COMPRESSÃO AXIAL                                                                       !!
+!!                                                                                                !!
+! Ativar (1) ou desativar (0) este tipo de carga
+LoadType4=
+! Valor da força de compressão axial aplicada
+CompressiveForce=
+!<blank>
+!! 1.5.5   MOMENTO FLETOR NAS EXTREMIDADES                                                        !!
+!!                                                                                                !!
+! Ativar (1) ou desativar (0) este tipo de carga
+LoadType5=
+! Valor do momento fletor aplicado na extremidade esquerda
+BendingMomentLS=
+! Valor do momento fletor aplicado na extremidade direita
+BendingMomentRS=
+! Tipo de diagrama
+!    [0] Diagrama elástico
+!    [1] Diagrama plástico
+!    [2] Binário nas mesas
+!    [3] Diagrama plástico nos Ts
+BMDiagram=
+!<blank>
+!<blank>
+!!                                                                                                !!
+!! 1.6   APOIOS                                                                                   !!
+!!                                                                                                !!
+!<blank>
+!! 1.6.1   APOIO ESQUERDO                                                                         !!
+!!                                                                                                !!
+! Empenamento da seção transversal
+!    [ 0] Livre
+!    [ 1] Restringido
+!    [-1] Sem elementos de restrição
+LS_WARP=
+! Deslocamento em X
+!    [0] Livre
+!    [1] Restringido (metade da alma)
+!    [2] Restringido (mesa inferior)
+!    [3] Restringido (mesa superior)
+LS_UX=
+! Deslocamento em Y
+!    [0] Livre
+!    [1] Restringido (alma)
+!    [2] Restringido (mesa inferior)
+!    [3] Restringido (mesa superior)
+LS_UY=
+! Deslocamento em Z
+!    [0] Livre
+!    [1] Restringido (alma)
+!    [2] Restringido (bordas das mesas)
+LS_UZ=
+! Rotação em torno de X
+!    [0] Livre
+!    [1] Restringido
+LS_ROTX=
+! Rotação em torno de Y
+!    [0] Livre
+!    [1] Restringido
+LS_ROTY=
+! Rotação em torno de Z
+!    [0] Livre
+!    [1] Restringido
+LS_ROTZ=
+!<blank>
+!! 1.6.2   APOIO DIREITO                                                                          !!
+!!                                                                                                !!
+! Empenamento da seção transversal
+!    [ 0] Livre
+!    [ 1] Restringido
+!    [-1] Sem elementos de restrição
+RS_WARP=
+! Deslocamento em X
+!    [0] Livre
+!    [1] Restringido (metade da alma)
+!    [2] Restringido (mesa inferior)
+!    [3] Restringido (mesa superior)
+RS_UX=
+! Deslocamento em Y
+!    [0] Livre
+!    [1] Restringido (alma)
+!    [2] Restringido (mesa inferior)
+!    [3] Restringido (mesa superior)
+RS_UY=
+! Deslocamento em Z
+!    [0] Livre
+!    [1] Restringido (alma)
+!    [2] Restringido (bordas das mesas)
+RS_UZ=
+! Rotação em torno de X
+!    [0] Livre
+!    [1] Restringido
+RS_ROTX=
+! Rotação em torno de Y
+!    [0] Livre
+!    [1] Restringido
+RS_ROTY=
+! Rotação em torno de Z
+!    [0] Livre
+!    [1] Restringido
+RS_ROTZ=
+!<blank>
+!! 1.6.3   MOLAS DE TORÇÃO                                                                        !!
+!!                                                                                                !!
+! Molas de torção:
+!    [0] Não incluir
+!    [1] Incluir (mesa superior)
+TorsionSprings_status=
+! Rigidez da mola de torção
+TorsionSprings_stiffness=
+!<blank>
+!<blank>
+!!                                                                                                !!
+!! 1.7   APOIOS LATERAIS                                                                          !!
+!!                                                                                                !!
+! Incluir apoios laterais
+!    [0] Desativar
+!    [1] Ativar (mesas superior e inferior)
+!    [2] Mesa superior
+!    [3] Mesa inferior
+LatSupStatus=
+!<blank>
+!! 1.7.1   APOIOS                                                                                 !!
+!!                                                                                                !!
+! Incluir apoios laterais nos apoios esquerdo (LS) e direito (RS)
+!    [0] Desativar
+!    [1] Ativar (mesas superior e inferior)
+!    [2] Mesa superior
+!    [3] Mesa inferior
+LatSup_LS=
+LatSup_RS=
+!<blank>
+!! 1.7.2   PONTOS DE INTRODUÇÃO DE CARGA DA FLEXÃO DE 4 PONTOS                                    !!
+!!                                                                                                !!
+! Incluir apoios laterais nos pontos de introdução de carga da flexão de 4 pontos
+!    [0] Desativar
+!    [1] Ativar (mesas superior e inferior)
+!    [2] Mesa superior
+!    [3] Mesa inferior
+LatSup_4P=
+!<blank>
+!! 1.7.3   PONTO DE INTRODUÇÃO DE CARGA CONCENTRADA                                               !!
+!!                                                                                                !!
+! Incluir apoios laterais no ponto de introdução de carga concentrada
+!    [0] Desativar
+!    [1] Ativar (mesas superior e inferior)
+!    [2] Mesa superior
+!    [3] Mesa inferior
+LatSup_PL=
+!<blank>
+!! 1.7.4   POSIÇÕES ARBITRÁRIAS                                                                   !!
+!!                                                                                                !!
+! Apoios laterais em posições arbitrárias
+!    [0] Desativar
+!    [1] Ativar (mesas superior e inferior)
+!    [2] Mesa superior
+!    [3] Mesa inferior
+LatSup_X=
+LatSup_XQuant=
+*if,LatSup_X,EQ,1,AND,LatSup_XQuant,GT,0,THEN
+   *del,LatSup_XPos
+   *dim,LatSup_XPos,ARRAY,LatSup_XQuant
+   LatSup_XPos=
+*endif
+!<blank>
+!! 1.7.5   CONTÍNUO                                                                               !!
+!!                                                                                                !!
+! Apoio lateral contínuo
+!    [0] Desativar
+!    [1] Ativar (mesas superior e inferior)
+!    [2] Mesa superior
+!    [3] Mesa inferior
+LatSup_CONT=
+!<blank>
+!<blank>
+!!                                                                                                !!
+!! 1.8   IMPERFEIÇÕES GEOMÉTRICAS                                                                 !!
+!!                                                                                                !!
+! Determinar os tipos de imperfeição geométrica a incluir e a forma de declarar a magnitude:
+! GIX_forced:  1 > Usar magnitude de imperfeição geométrica definida diretamente
+!              0 > Usar valor relativo (a ser multiplicado por outra grandeza)
+!             -1 > Não considerar a imperfeição geométrica
+!<blank>
+! Conjunto de imperfeições geométricas do Eurocode (EC3)
+!    [0] Desativar
+!    [1] Ativar
+GeomImperf_EC3=
+! Conjunto de imperfeições geométricas padrão (proposto)
+!    [0] Desativar
+!    [1] Ativar
+GeomImperf_STD=
+! Fator de redução aplicado a todas as magnitudes de imperfeição geométrica inicial
+GI_RedFact=
+!<blank>
+!! 1.8.1   IMPERFEIÇÃO GEOMÉTRICA TIPO 1: FLEXÃO EM TORNO DO EIXO DE MAIOR INÉRCIA                !!
+!!                                                                                                !!
+! [-1] Desativar / [1] Magnitude direta / [0] Valor relativo (multiplicar pelo comp. da peça, L)
+GI1_forced=
+! Valor da imperfeição goemétrica definido diretamente
+GI1_dir=
+! Valor relativo da imperfeição geométrica
+GI1_rel=
+!<blank>
+!! 1.8.2   IMPERFEIÇÃO GEOMÉTRICA TIPO 2: FLEXÃO EM TORNO DO EIXO DE MENOR INÉRCIA                !!
+!!                                                                                                !!
+! [-1] Desativar / [1] Magnitude direta / [0] Valor relativo (multiplicar pelo comp. da peça, L)
+GI2_forced=
+! Valor da imperfeição goemétrica definido diretamente
+GI2_dir=
+! Valor relativo da imperfeição geométrica
+GI2_rel=
+!<blank>
+!! 1.8.3   IMPERFEIÇÃO GEOMÉTRICA TIPO 3: FLEXÃO DO MONTANTE DA ALMA                              !!
+!!                                                                                                !!
+! [-1] Desativar / [1] Magnitude direta / [0] Valor relativo (multiplicar pela altura da peça, d)
+GI3_forced=
+! Valor da imperfeição goemétrica definido diretamente
+GI3_dir=
+! Valor relativo da imperfeição geométrica
+GI3_rel=
+! Permitir rotação da alma
+!    [0] Desativar: mesa permanece indeformada
+!    [1] Ativar: mesa gira com a alma
+FlangeRot=
+!<blank>
+!! 1.8.4   IMPERFEIÇÃO GEOMÉTRICA TIPO 4: DESALINHAMENTO DAS SEÇÕES T SUPERIOR E INFERIOR         !!
+!!                                                                                                !!
+! [-1] Desativar / [1] Magnitude direta / [0] Valor relativo (multiplicar pela altura da peça, d)
+GI4_forced=
+! Valor da imperfeição geométrica definido diretamente
+GI4_dir=
+! Valor relativo da imperfeição geométrica
+GI4_rel=
+!<blank>
+!! 1.8.5   IMPERFEIÇÃO GEOMÉTRICA TIPO 5: ENÉSIMO MODO DE FLAMBAGEM                               !!
+!!                                                                                                !!
+! Modo de introdução:
+!    [-1] Desativar
+!    [ 1] Magnitude direta
+!    [ 0] Valor relativo (multiplicar pela altura da peça, d)
+!    [ 2] Valor relativo (multiplicar pelo comprimento da peça, L)
+GI5_forced=
+! Valor da imperfeição geométrica definido diretamente
+GI5_dir=
+! Valor relativo da imperfeição geométrica
+GI5_rel=
+! Parte do modelo cujo deslocamento será analisado
+!    [0] Todos os nós do modelo (não inclui enrijecedores)
+!    [1] Somente os nós exclusivamente da alma
+!    [2] Nós da alma e das interfaces alma-mesa
+!    [3] Somente os nós das interfaces alma-mesa
+!    [4] Somente os nós das mesas
+GI5_nodes=
+! Número do modo de flambagem
+GI5_mode=
+!<blank>
+!! 1.8.6   IMPERFEIÇÃO GEOMÉTRICA TIPO 6: ENÉSIMO MODO DE FLAMBAGEM LOCAL DA ALMA                 !!
+!!                                                                                                !!
+! Modo de introdução:
+!    [-1] Desativar
+!    [ 1] Magnitude direta
+!    [ 0] Valor relativo (multiplicar pela altura da peça, d)
+GI6_forced=
+! Valor da imperfeição geométrica definido diretamente
+GI6_dir=
+! Valor relativo da imperfeição geométrica
+GI6_rel=
+! Número do modo de flambagem
+GI6_mode=
+!<blank>
+!<blank>
+!!                                                                                                !!
+!! 1.9   TENSÕES RESIDUAIS                                                                        !!
+!!                                                                                                !!
+! Determinar se deverão ser introduzidas tensões residuais
+!    [0] Não introduzir tensões residuais
+!    [1] Introduzir tensões residuais de Sonck (012) para tensões medidas no centro da abertura (TS)
+!    [2] Introduzir tensões residuais de Sonck (012) para tensões medidas no centro do montante (WP)
+!    [3] Introduzir tensões residuais de Sonck (012) modificada (dependente da posição do nó)
+!    [4] Introduzir tensões residuais de Vieira
+IncludeResidualStresses=
+! Número de load steps da análise com tensões residuais
+resLoadSteps=
+!<blank>
+!<blank>
+!!                                                                                                !!
+!! 1.10  MODELO DE ELEMENTOS FINITOS                                                              !!
+!!                                                                                                !!
+!<blank>
+!! 1.10.1  MALHA                                                                                  !!
+!!                                                                                                !!
+! Dimensão mínima dos elementos
+MinESize=
+! Forçar uso da dimensão mínima dos elementos
+ESizeOverride=
+! Malha fina:
+!    [0] Malha grossa (padrão)
+!    [1] Malha fina
+FineMesh=
+!<blank>
+!! 1.10.2  SOLUÇÃO DA ANÁLISE NÃO LINEAR                                                          !!
+!!                                                                                                !!
+! Cancelar solução da análise não linear
+!    [0] Não cancelar (solucionar análise não linear)
+!    [1] Cancelar
+CancelNLSolu=
+! Integração do elemento:
+!    [0] Integração reduzida (padrão)
+!    [1] Integração completa (KEYOPT(3)=2)
+FullIntegration=
+! Número de passos da análise não linear
+SubstepCount=
+! Armazenar apenas o último substep
+!    [0] Desativar (armazenar todos os substeps)
+!    [1] Ativar
+OutresLast=
+! Teoria de grandes deslocamentos
+!    [0] Desativar
+!    [1] Ativar
+LargeDisp=
+! Ativar arc-length method
+!    [0] Desativar
+!    [1] Ativar
+ArcLenStatus=
+! Controle de término de solução
+!    [0] Desativar    (não encerrar solução)
+!    [1] Ativar       (encerrar solução no primeiro ponto de limite)
+!    [2] Deslocamento (controlar deslocamento nodal do nó central)
+ArcLenTerm=
+! Redutor do deslocamento máximo para controle de deslocamento nodal
+!    = 1 : não altera o limite de deslocamento calculado automaticamente
+!    > 1 : reduz o limite de deslocamento
+!    < 1 : aumenta o limite de deslocamento
+!    < 0 : declaração direta do valor
+ALDOFLimCut=
+! Multiplicador máximo do comprimento de arco
+MaxArcMult=
+! Multiplicador mínimo do comprimento de arco
+MinArcMult=
+!<blank>
+!! 1.10.3  ANÁLISE DE FLAMBAGEM                                                                   !!
+!!                                                                                                !!
+! Análise de flambagem
+!    [0] Não realizar
+!    [1] Realizar
+BucklingAnalysis=
+! Número de modos de vibração a extrair --- (recomendação: 5)
+BucklingModes=
+!<blank>
+!! 1.10.4  ANÁLISE DINÂMICA                                                                       !!
+!!                                                                                                !!
+! Análise dinâmica
+!    [0] Não realizar
+!    [1] Análise modal
+!    [2] Análises model & transiente
+DynamicAnalysis=
+! Número de modos de vibração a extrair --- (recomendação: 5)
+VibrationModes=
+! Massa adicional para análise dinâmica [kg/m]
+AddedMass=
+! Massa da pessoa [kg] --- (recomendação: 700)
+FourierLoad=
+! Amortecimento relativo (ksi) --- (recomendação: 0.02)
+DampingRatio=
+! Multiplicador do período para cálculo do incremento de tempo --- (recomendação: 0.1)
+TIncMultiplier=
+!<blank>
+!! 1.10.5  GERAL                                                                                  !!
+!!                                                                                                !!
+! Resolução das imagens
+!    [0] Baixa resolução (800 pixels)
+!    [1] Alta resolução (2400 pixels)
+hiRes=
+
+
+

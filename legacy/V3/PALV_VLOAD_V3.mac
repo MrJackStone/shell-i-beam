@@ -1,0 +1,100 @@
+
+!! 4.1.1   CARGA VERTICAL                                                                         !!
+!!                                                                                                !!
+*if,GeomImperf1,NE,0,THEN
+
+   *msg,UI,FileName(1),CodeVersion,'GEOMETRIC IMPERFECTION ANALYSIS:','Type 1 (Strong Axis Bending)'
+%C (V%f) %/&
+%C %/&
+%C
+
+   ! Renomear arquivo
+   FINISH
+   /filname,'GI1FName',1
+
+   ! Carregar modelo
+   /prep7
+   RESUME,'BaseModel',,,0,1
+
+   ! Inicializar load step
+   /solu
+   ANTYPE,0
+   LSCLEAR,ALL
+   NLGEOM,OFF
+   ALLSEL
+   SELTOL,1e-8
+
+   ! Aplicar carga
+   NSEL,S,LOC,Z,VIGA_z0
+   NSEL,R,LOC,Y,VIGA_y0+VIGA_dm
+   *get,NodeCount,NODE,0,COUNT
+   NodalLoad=GeomImperfLoad*VIGA_L/NodeCount
+   F,ALL,FY,-NodalLoad
+
+   ! Apoio esquerdo
+   ! Criar componente com nós do apoio esquerdo
+   NSEL,S,LOC,X,VIGA_x0
+   CM,COMPN_Esq,NODE
+   ! Apoio tipo garfo
+   D,COMPN_Esq,UY,0,,,,UZ,ROTX
+   ! Restringir deslocamento longitudinal
+   NSEL,R,LOC,Y,VIGA_y0+yOpLine
+   *get,CenterNode_ESQ,NODE,0,NUM,MIN
+   D,CenterNode_ESQ,UX,0
+
+   ! Apoio direito
+   ! Criar componente com nós do apoio direito
+   NSEL,S,LOC,X,viga_x0+VIGA_L
+   CM,COMPN_Dir,NODE
+   ! Apoio tipo garfo
+   D,COMPN_Dir,UY,0,,,,UZ,ROTX
+
+   ! Solucionar load step
+   ALLSEL
+   /uis,ABORT,OFF
+   KEYW,pr_sgui,1
+   SOLVE
+   KEYW,pr_sgui,0
+
+   *msg,UI,FileName(1),CodeVersion,'GEOMETRIC IMPERFECTION ANALYSIS:','Type 1 (Strong Axis Bending)','Solution is done!'
+%C (V%f) %/&
+%C %/&
+%C %/&
+%C
+
+   ! Ler resultados
+   /post1
+   ALLSEL
+   SET,FIRST
+
+   ! Plotar deformada
+   /show
+   PLNSOL,U,SUM
+
+   ! Imagem: deformada da imperfeição geométrica tipo 1
+   PALV_TAKEPIC,'(I1)'
+
+   ! Selecionar nós da interface entre alma e mesa inferior
+   NSEL,S,LOC,Y,VIGA_y0
+   NSEL,R,LOC,Z,VIGA_z0
+   *get,NodeCount,NODE,0,COUNT
+   nthNode=0
+   maxYDisp=0
+   ! Obter máximo deslocamento em Y (módulo)
+   *do,i,1,NodeCount,1
+      nthNode=NDNEXT(nthNode)
+      *get,yDisp,NODE,nthNode,U,Y
+      yDisp=ABS(yDisp)
+      *if,yDisp,GT,maxYDisp,THEN
+         maxYDisp=yDisp
+      *endif
+   *enddo
+
+   ! Calcular o fator de introdução da imperfeição geométrica tipo 1
+   UpGeomFactor1=GeomImperf1/maxYDisp
+
+   ALLSEL
+   FINISH
+
+*endif
+

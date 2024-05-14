@@ -1,0 +1,81 @@
+! Selecionar nós das mesas
+CMSEL,S,CM_FlangeNodes
+
+RS_FLAG=0
+*if,LS_sExtWeb,EQ,LS_sExtOp,AND,LS_sMidWeb,EQ,LS_sMidOp,THEN
+   ! Definir variável indicando que o padrão é constante ao longo da barra
+   longConst=1
+   ! Caso as tensões residuais não variem em montante e abertura
+   *if,LS_sExtWeb,EQ,LS_sMidWeb,THEN
+      ! Caso as tensões não variem ao longo de toda a mesa
+      INISTATE,DEFINE,ALL,,,,LS_sExtWeb
+      totalFlangeResStress=LS_sExtWeb*flangeNodeCount
+      RS_FLAG=1
+   *endif
+*else
+   ! Definir variável indicando que o padrão varia ao longo da barra
+   longConst=0
+*endif
+
+! Caso a tensão residual ainda não tenha sido aplicada:
+*if,RS_FLAG,EQ,0,THEN
+
+   nthNode=0
+   totalFlangeResStress=0
+
+   ! Para cada nó das mesas:
+   *do,i,1,flangeNodeCount,1
+
+      ! Obter número do nó
+      nthNode=NDNEXT(nthNode)
+      ! Obter coordenadas do nó
+      xVal=NX(nthNode)
+      zVal=NZ(nthNode)
+
+      ! Caso a distribuição varie ao longo da barra:
+      *if,longConst,EQ,O,THEN
+         ! Verificar se o nó está numa seção de montante ou abertura
+         PALV_NDPOS
+         ! Determinar os valores de tensão no centro e nas extremidades a utilizar
+         *if,nodePosition,EQ,0,THEN
+            ! Caso o nó esteja em seção de montante
+            sExt=LS_sExtWeb
+            sMid=LS_sMidWeb
+         *elseif,nodePosition,EQ,1,THEN
+            ! Caso o nó esteja em seção com abertura
+            sExt=LS_sExtOp
+            sMid=LS_sMidOp
+         *endif
+      *else
+         ! Caso as temsões residuais não variem em montante e abertura
+         sExt=LS_sExtWeb
+         sMid=LS_sMidWeb
+      *endif
+
+      ! Determinar a tensão residual no nó
+      *if,zVal,LE,VIGA_z0,THEN
+         ! Caso o nó esteja na metade esquerda da seção
+         nodalStress=2*((sMid-sExt)/VIGA_bf)*(zVal-VIGA_z0)+sMid
+      *else
+         ! Caso o nó esteja na metade direita da seção
+         nodalStress=2*((sExt-sMid)/VIGA_bf)*(zVal-VIGA_z0)+sMid
+      *endif
+
+      ! Aplicar tensão residual
+      INISTATE,DEFINE,nthNode,,,,nodalStress
+      totalFlangeResStress=totalFlangeResStress+nodalStress
+
+   *enddo
+*endif
+
+! Tensões residuais na alma
+CMSEL,S,CM_WebNodes
+
+*if,IncludeResidualStresses,GE,1,AND,IncludeResidualStresses,LE,3,THEN
+   ! Distribuição de Sonck (012)
+   webResStress=-(totalFlangeResStress*SEC_Mesa_THK)/(webNodeCount*SEC_Alma1_THK)
+*elseif,IncludeResidualStresses,EQ,4,THEN
+   ! Distribuição de Vieira (040)
+   webResStress=LS_sWeb
+*endif
+INISTATE,DEFINE,ALL,,,,webResStress

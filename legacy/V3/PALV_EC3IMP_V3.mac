@@ -1,0 +1,214 @@
+! Parent section type
+!    [1] Rolled
+!    [2] Welded
+
+! Cross-section depth to width ratio
+CSRatio1=VIGA_dm/VIGA_bfs
+CSRatio2=VIGA_dm/VIGA_bfi
+*if,CSRatio1,GE,CSRatio2,THEN
+   CSRatio=CSRatio1
+*else
+   CSRatio=CSRatio2
+*endif
+
+! Initialize buckling/LTB curve selection
+SACurve1=' '
+WACurve1=' '
+WACurve2=' '
+
+! Buckling curve (compression)
+*if,VIGA_psFab,EQ,1,THEN
+    ! Rolled section
+
+    *if,CSRatio,GT,1.2,THEN
+        ! d/bf ratio > 1.2
+
+        *if,SEC_MesaSup_THK,LE,40e-3,AND,SEC_MesaInf_THK,LE,40e-3,THEN
+            ! Flange thickness <= 40mm
+
+            *if,MAT_MesaSup_fy,LT,460e6,THEN
+                ! Steel grade: S235,S275, S355, S420
+                SACurve1='a'
+                WACurve1='b'
+            *else
+                ! Steel grade: S460
+                SACurve1='a0'
+                WACurve1='a0'
+            *endif
+
+        *else
+            ! Flange thickness > 40mm
+
+            *if,MAT_MesaSup_fy,LT,460e6,THEN
+                ! Steel grade: S235,S275, S355, S420
+                SACurve1='b'
+                WACurve1='c'
+            *else
+                ! Steel grade: S460
+                SACurve1='a'
+                WACurve1='a'
+            *endif
+
+        *endif
+
+    *else
+        ! d/bf ratio <= 1.2
+
+        *if,SEC_MesaSup_THK,LE,100e-3,AND,SEC_MesaInf_THK,LE,100e-3,THEN
+            ! Flange thickness <= 100mm
+
+            *if,MAT_MesaSup_fy,LT,460e6,THEN
+                ! Steel grade: S235,S275, S355, S420
+                SACurve1='b'
+                WACurve1='c'
+            *else
+                ! Steel grade: S460
+                SACurve1='a'
+                WACurve1='a'
+            *endif
+
+        *else
+            ! Flange thickness > 100mm
+
+            *if,MAT_MesaSup_fy,LT,460e6,THEN
+                ! Steel grade: S235,S275, S355, S420
+                SACurve1='d'
+                WACurve1='d'
+            *else
+                ! Steel grade: S460
+                SACurve1='c'
+                WACurve1='c'
+            *endif
+
+        *endif
+
+    *endif
+
+*else
+    ! Welded section
+
+    *if,SEC_MesaSup_THK,LE,40e-3,AND,SEC_MesaInf_THK,LE,40e-3,THEN
+        ! Flange thickness <= 40mm
+
+        *if,MAT_MesaSup_fy,LT,460e6,THEN
+            ! Steel grade: S235,S275, S355, S420
+            SACurve1='b'
+            WACurve1='c'
+        *else
+            ! Steel grade: S460
+            SACurve1='b'
+            WACurve1='c'
+        *endif
+
+    *else
+        ! Flange thickness > 40mm
+
+        *if,MAT_MesaSup_fy,LT,460e6,THEN
+            ! Steel grade: S235,S275, S355, S420
+            SACurve1='c'
+            WACurve1='d'
+        *else
+            ! Steel grade: S460
+            SACurve1='c'
+            WACurve1='d'
+        *endif
+
+    *endif
+
+*endif
+
+! LTB curve (bending)
+*if,VIGA_psFab,EQ,1,THEN
+    ! Rolled section
+
+    *if,CSRatio,LE,2,THEN
+        ! d/bf ratio <= 2
+        WACurve2='a'
+    *else
+        ! d/bf ratio > 2
+        WACurve2='b'
+    *endif
+
+*else
+    ! Welded section
+
+    *if,CSRatio,LE,2,THEN
+        ! d/bf ratio <= 2
+        WACurve2='c'
+    *else
+        ! d/bf ratio > 2
+        WACurve2='d'
+    *endif
+
+*endif
+
+! Strong axis imperfection magnitude: buckling curve (compression)
+*if,SACurve1,EQ,'a0',THEN
+    ! Buckling curve 'a0'
+    SAFactor1=1/300
+*elseif,SACurve1,EQ,'a',THEN
+    ! Buckling curve 'a'
+    SAFactor1=1/250
+*elseif,SACurve1,EQ,'b',THEN
+    ! Buckling curve 'b'
+    SAFactor1=1/200
+*elseif,SACurve1,EQ,'c',THEN
+    ! Buckling curve 'c'
+    SAFactor1=1/150
+*elseif,SACurve1,EQ,'d',THEN
+    ! Buckling curve 'd'
+    SAFactor1=1/100
+*else
+    SAFactor1=0
+*endif
+
+! Weak axis imperfection magnitude: buckling curve (compression)
+*if,WACurve1,EQ,'a0',THEN
+    ! Buckling curve 'a0'
+    WAFactor1=1/300
+*elseif,WACurve1,EQ,'a',THEN
+    ! Buckling curve 'a'
+    WAFactor1=1/250
+*elseif,WACurve1,EQ,'b',THEN
+    ! Buckling curve 'b'
+    WAFactor1=1/200
+*elseif,WACurve1,EQ,'c',THEN
+    ! Buckling curve 'c'
+    WAFactor1=1/150
+*elseif,WACurve1,EQ,'d',THEN
+    ! Buckling curve 'd'
+    WAFactor1=1/100
+*else
+    WAFactor1=0
+*endif
+
+! Weak axis imperfection magnitude: LTB curve (bending)
+*if,WACurve2,EQ,'a',THEN
+    ! LTB curve 'a'
+    WAFactor2=1/250
+*elseif,WACurve2,EQ,'b',THEN
+    ! LTB curve 'b'
+    WAFactor2=1/200
+*elseif,WACurve2,EQ,'c',THEN
+    ! LTB curve 'c'
+    WAFactor2=1/150
+*elseif,WACurve2,EQ,'d',THEN
+    ! LTB curve 'd'
+    WAFactor2=1/100
+*else
+    WAFactor2=0
+*endif
+
+! Final strong axis imperfection magnitude
+SAFactor=SAFactor1
+
+! Final weak axis imperfection magnitude
+*if,WAFactor1,GT,WAFactor2,THEN
+    WAFactor=WAFactor1
+*else
+    WAFactor=WAFactor2
+*endif
+
+! Local plate buckling imperfection
+PBFactor=1/200
+

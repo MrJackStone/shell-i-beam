@@ -1,0 +1,155 @@
+
+!! —————————————————————————————————————————————————————————————————————————————————————————————— !!
+!!                                                                                                !!
+!! 6.   PÓS-PROCESSAMENTO                                                                         !!
+!!                                                                                                !!
+!! —————————————————————————————————————————————————————————————————————————————————————————————— !!
+! Caso a análise não linear tenha sido solucionada:
+*if,CancelNLSolu,EQ,0,THEN
+
+   *msg,UI,FileName(1),CodeVersion,'NONLINEAR ANALYSIS: ','Post-processing'
+%C (V%f) %/&
+%C %/&
+%C
+
+   /post1
+   VIEW4W
+
+   !!                                                                                             !!
+   !! 6.1   DEFORMADA                                                                             !!
+   !!                                                                                             !!
+   ALLSEL
+   ! Executar subrotina
+   PALV_PST_V2
+
+
+   !!                                                                                             !!
+   !! 6.2   TABELA DE RESULTADOS                                                                  !!
+   !!                                                                                             !!
+   /post26
+
+   ! Definir cor da primeira curva do gráfico (azul)
+   /color,CURVE,BLUE,1
+   ! Número máximo de variáveis
+   NUMVAR,200
+   ! Definir intervalo a ser armazenado
+   TIMERANGE,startTime,Lambda
+   NSTORE,1
+
+   ! Executar subrotina
+   *if,OutresLast,NE,1,THEN
+      PALV_RTAB_V2
+   *endif
+
+
+   !!                                                                                             !!
+   !! 6.3   GRÁFICOS                                                                              !!
+   !!                                                                                             !!
+   ! Definir vista em uma janela
+   VIEW1W
+   ! Redefinir resolução das imagens
+   userImgRes=imgRes
+   imgRes=800
+
+   !! 6.3.1   NÓS DE INTRODUÇÃO DE CARGA DA FLEXÃO DE 4 PONTOS                                    !!
+   !!                                                                                             !!
+   ALLSEL
+   ! Executar subrotina
+   *if,OutresLast,NE,1,THEN
+      PALV_PST4P_V2
+   *else
+      *del,FNode1_YDisp
+      *dim,FNode1_YDisp,ARRAY,1
+      FNode1_YDisp(1)=UY(FNode1)
+      *del,FNode2_YDisp
+      *dim,FNode2_YDisp,ARRAY,1
+      FNode2_YDisp(1)=UY(FNode2)
+   *endif
+
+   !! 6.3.2   NÓ DO CENTRO DO VÃO PARA CARGA DISTRIBUÍDA                                          !!
+   !!                                                                                             !!
+   ALLSEL
+   ! Executar subrotina
+   *if,OutresLast,NE,1,THEN
+      PALV_PSTUL_V2
+   *else
+      ! Obter resultado apenas do último substep
+      *del,FNode4_YDisp
+      *dim,FNode4_YDisp,ARRAY,1
+      FNode4_YDisp(1)=UY(FNode4)
+   *endif
+
+   !! 6.3.3   NÓS DE INTRODUÇÃO DA CARGA CONCENTRADA                                              !!
+   !!                                                                                             !!
+   ALLSEL
+   ! Executar subrotina
+   *if,OutresLast,NE,1,THEN
+      PALV_PSTPL_V2
+   *else
+      ! Obter resultado apenas do último substep
+      *del,FNode3_YDisp
+      *dim,FNode3_YDisp,ARRAY,1
+      FNode3_YDisp(1)=UY(FNode3)
+   *endif
+
+   !! 6.3.4   NÓ DO APOIO DIREITO PARA CARGA DE COMPRESSÃO AXIAL                                  !!
+   !!                                                                                             !!
+   ALLSEL
+   ! Executar subrotina
+   *if,OutresLast,NE,1,THEN
+      PALV_PSTAC_V2
+   *else
+      ! Obter resultado apenas do último substep
+      *del,FNode5_XDisp
+      *dim,FNode5_XDisp,ARRAY,1
+      FNode5_XDisp(1)=UX(FNode5)
+   *endif
+
+   !! 6.3.5   NÓS DE INTRODUÇÃO DO MOMENTO FLETOR NAS EXTREMIDADES                                !!
+   !!                                                                                             !!
+   ALLSEL
+   ! Executar subrotina
+   *if,OutresLast,NE,1,THEN
+      PALV_PSTBM_V2
+   *else
+      ! Obter resultado apenas do último substep
+      *del,FNode6_ZRot
+      *dim,FNode6_ZRot,ARRAY,1
+      FNode6_ZRot(1)=ROTZ(FNode6)
+      *del,FNode7_ZRot
+      *dim,FNode7_ZRot,ARRAY,1
+      FNode7_ZRot(1)=ROTZ(FNode7)
+   *endif
+
+   !! 6.3.6   NÓ DE DEFORMAÇÃO TOTAL MÁXIMA                                                       !!
+   !!                                                                                             !!
+   ALLSEL
+   ! Executar subrotina
+   *if,OutresLast,NE,1,THEN
+      PALV_EPTO_V2
+   *endif
+
+
+   !!                                                                                             !!
+   !! 6.4   ESCREVER MEMORIAL DE CÁLCULO                                                          !!
+   !!                                                                                             !!
+   ALLSEL
+   ! Reestabelecer a resolução original das imagens
+   imgRes=userImgRes
+   ! Executar subrotina
+   !!PALV_MEMOP2_V2
+
+   ! Redefinir eixos dos gráficos
+   /xrange
+   /yrange
+
+   ! Salvar modelo
+   SAVE,'%FileName(1)% ',DB,,ALL
+
+*endif
+
+*msg,UI,FileName(1),CodeVersion,'FINISHED!'
+%C (V%f) %/&
+%C
+
+

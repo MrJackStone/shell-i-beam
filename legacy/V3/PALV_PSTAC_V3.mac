@@ -1,0 +1,43 @@
+
+!! 6.3.4   NÓ DO APOIO DIREITO PARA CARGA DE COMPRESSÃO AXIAL                                     !!
+!!                                                                                                !!
+ALLSEL
+*if,LoadType4,EQ,1,THEN
+
+   !! 6.3.4.1   DEFINIR VARIÁVEIS                                                                 !!
+   ! Solução nodal no nó de aplicação de carga (deslocamento vertical)
+   NSOL,AX_VarNum,FNode5,U,X,DISP_X5
+
+   !! 6.3.4.2   DEFINIR PARÂMETROS                                                                !!
+   ! Fator de carga
+   *vlen,LastSubstep,1
+   *del,LoadFactors
+   *dim,LoadFactors,ARRAY,LastSubstep
+   VGET,LoadFactors(1),1
+   ! Deslocamento em X do nó
+   *vlen,LastSubstep,1
+   *del,FNode5_XDisp
+   *dim,FNode5_XDisp,ARRAY,LastSubstep
+   VGET,FNode5_XDisp(1),AX_VarNum
+   *vlen
+
+   !! 6.3.4.3   CAPTURAR IMAGENS DOS GRÁFICOS                                                     !!
+   ! Variável em x: deslocamento do nó
+   XVAR,AX_VarNum
+   ! Definir intervalo do eixo X
+   *vscfun,GraphXMin,MIN,FNode5_XDisp
+   *vscfun,GraphXMax,MAX,FNode5_XDisp
+   /xrange,GraphXMin,GraphXMax
+   ! Definir intervalo do eixo Y
+   *vscfun,GraphYMin,MIN,LoadFactors
+   *vscfun,GraphYMax,MAX,LoadFactors
+   /yrange,GraphYMin,GraphYMax
+   ! Variável em Y: fator de carga
+   /show
+   PLVAR,1
+   PALV_TAKEPIC,'(U5)'
+
+*endif
+
+
+

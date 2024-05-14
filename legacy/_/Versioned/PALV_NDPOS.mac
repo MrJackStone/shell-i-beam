@@ -1,0 +1,32 @@
+
+! Verificar se o nó está numa seção de montante ou abertura
+*if,xVal,LE,xBeg,THEN
+   ! Caso o nó esteja antes da primeira abertura: montante (0)
+   nodePosition=0
+*elseif,xVal,GE,xEnd,THEN
+   ! Caso o nó esteja após a última abertura: montante (0)
+   nodePosition=0
+*else
+   ! Caso o nó esteja na região com aberturas:
+   ! Calcular o número da abertura
+   nthOpening=(xVal-xBeg)/VIGA_se
+   opNum=NINT(nthOpening)
+   *if,opNum,LT,nthOpening,THEN
+      opNum=opNum+1
+   *endif
+   ! Determinar a coordenada X do início da abertura
+   xBegLocal=VIGA_se*(opNum-1)+xBeg
+   ! Alterar para sistema de coordenadas local com origem no início da abertura
+   xLocal=xVal-xBegLocal
+   ! Verificar se o nó está na região com abertura
+   *if,xLocal,GT,VIGA_s0,THEN
+      ! Nó após a abertura: montante (0)
+      nodePosition=0
+   *else
+      ! Nó na seção com abertura: abertura (1)
+      nodePosition=1
+   *endif
+*endif
+
+
+

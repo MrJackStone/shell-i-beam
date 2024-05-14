@@ -1,0 +1,110 @@
+
+!! 4.1.4   MODO DE FLAMBAGEM                                                                      !!
+!!                                                                                                !!
+*if,GeomImperf5,NE,0,THEN
+
+   ! Renomear arquivo
+   FINISH
+   /filname,'GI5FName',1
+
+   ! Carregar modelo
+   /prep7
+   RESUME,'BaseModel',,,0,1
+
+   ! Inicializar load step
+   /solu
+   ANTYPE,0
+   LSCLEAR,ALL
+   NLGEOM,OFF
+   PSTRES,ON
+   ALLSEL
+   SELTOL,1e-8
+
+   ! Apoios
+   PALV_SUP
+   /solu
+
+   ! Aplicar carga
+   PALV_LOAD
+
+   ! Solucionar load step
+   ALLSEL
+   SOLVE
+
+   ! Pós-processo
+   /post1
+   SET,FIRST
+
+   ! Análise de flambagem
+   /solu
+   ALLSEL
+   ANTYPE,1
+   BUCOPT,LANB,ABS(GI5_mode)+5,0,,RANGE
+   SOLVE
+
+   ! Pós-processo
+   /post1
+   SET,,ABS(GI5_mode)
+   /show
+   PLNSOL,U,SUM
+
+   ! Imagem: deformada da imperfeição geométrica tipo 5
+   PALV_TAKEPIC,'(I5)'
+   ALLSEL
+
+   ! Definir quais nós utilizar para calcular o fator de deslocamento
+   *if,GI5_nodes,EQ,0,THEN
+      ! Selecionar todos os nós da peça alveolar
+      NSEL,S,LOC,Z,VIGA_z0
+      NSEL,A,LOC,Y,VIGA_y0
+      NSEL,A,LOC,Y,VIGA_y0+VIGA_dm
+   *elseif,GI5_nodes,EQ,1,THEN
+      ! Selecionar os nós exclusivamente pertencentes à alma
+      NSEL,U,LOC,Y,VIGA_y0
+      NSEL,U,LOC,Y,VIGA_y0+VIGA_dm
+      NSEL,R,LOC,Z,VIGA_z0
+   *elseif,GI5_nodes,EQ,2,THEN
+      ! Selecionar nós da alma e das interfaces alma-mesa
+      NSEL,R,LOC,Z,VIGA_z0
+   *elseif,GI5_nodes,EQ,3,THEN
+      ! Selecionar somente os nós das interfaces alma-mesa
+      NSEL,S,LOC,Y,VIGA_y0
+      NSEL,A,LOC,Y,VIGA_y0+VIGA_dm
+      NSEL,R,LOC,Z,VIGA_z0
+   *elseif,GI5_nodes,EQ,4,THEN
+      ! Selecionar somente os nós das mesas
+      NSEL,S,LOC,Y,VIGA_y0
+      NSEL,A,LOC,Y,VIGA_y0+VIGA_dm
+   *endif
+
+   *get,NodeCount,NODE,0,COUNT
+   nthNode=0
+   maxFDisp=0
+   ! Obter máximo deslocamento (módulo)
+   *do,i,1,NodeCount,1
+      nthNode=NDNEXT(nthNode)
+      *get,fDisp,NODE,nthNode,U,SUM
+      fDisp=ABS(fDisp)
+      *if,fDisp,GT,maxFDisp,THEN
+         maxFDisp=fDisp
+      *endif
+   *enddo
+   ALLSEL
+
+!   ! Capturar imagens dos modos de flambagem
+!   *do,i,1,ABS(GI5_mode)+5
+!      SET,,i
+!      /show
+!      PLNSOL,U,SUM
+!      ! Imagem: deformada do modo de flambagem
+!      PALV_TAKEPIC,'(Md%i%)'
+!   *enddo
+
+   ! Calcular o fator de introdução da imperfeição geométrica tipo 3
+   UpGeomFactor5=GeomImperf5/maxFDisp
+
+   ALLSEL
+   FINISH
+
+*endif
+

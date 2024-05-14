@@ -1,0 +1,1687 @@
+/batch
+
+!! —————————————————————————————————————————————————————————————————————————————————————————————— !!
+!!                                                                                                !!
+!! 2.   CÁLCULOS PRELIMINARES                                                                     !!
+!!                                                                                                !!
+!! —————————————————————————————————————————————————————————————————————————————————————————————— !!
+! Versão do código
+CodeVersion=3
+
+! Obter hora inicial
+*get,initTime,ACTIVE,,TIME,WALL
+
+*get,pType,PARM,LongJobname,TYPE
+*if,pType,NE,-1,THEN
+    *del,FileName
+    *dim,FileName,STRING,248
+    FileName(1)=LongJobname(1)
+*else
+    ! Inicializar vetor de nome do arquivo
+    *del,FileName
+    *dim,FileName,STRING,248
+    ! Inicializar índice de leitura do nome do arquivo
+    kIndex=1
+    ! Enquanto a parte do nome lida contiver caracteres:
+    FLAG=1
+    *dowhile,FLAG
+        ! Obter parte do nome do arquivo
+        *get,namePart,ACTIVE,0,JOBNAM,,START,kIndex
+        ! Obter número de caracteres da string
+        partLength=STRLENG(namePart)
+        ! Caso a string contenha caracteres não nulos (diferentes de espaço):
+        *if,partLength,GT,0,THEN
+            ! Concatenar nome do arquivo
+            FileName(1)=STRCAT(FileName(1),namePart)
+            ! Incrementar índice de leitura do nome do arquivo
+            kIndex=kIndex+8
+        *else
+            ! String sem caracteres: sair do loop
+            FLAG=0
+        *endif
+    *enddo
+*endif
+! Remover caracteres de espaço do nome do arquivo
+FileName(1)=STRCOMP(FileName(1))
+
+! Exibir título
+/title,'%FileName(1)% (V%CodeVersion%)'
+
+! Obter diretório atual (string array)
+/inquire,currDir,DIRECTORY
+
+! Pasta de resultados
+*del,resFolderPath
+*dim,resFolderPath,STRING,248
+*del,resFolderName
+*dim,resFolderName,STRING,248
+resFolderName(1)=STRCAT('RES_',FileName(1))
+resFolderPath(1)=STRCAT(currDir(1),'\')
+resFolderPath(1)=STRCAT(resFolderPath(1),resFolderName(1))
+! Criar pasta de resultados
+/syp,mkdir,resFolderName(1)
+/cwd,'%resFolderPath(1)%'
+
+! Pasta de imagens
+*del,imgFolderPath
+*dim,imgFolderPath,STRING,248
+imgFolderName='IMG'
+imgFolderPath(1)=STRCAT(resFolderPath(1),'\')
+imgFolderPath(1)=STRCAT(imgFolderPath(1),imgFolderName)
+! Criar pasta de imagens
+/syp,mkdir,imgFolderName
+/cwd,'%currDir(1)%'
+
+! Pasta de imagens da análise dinâmica
+*if,DynamicAnalysis,GE,1,THEN
+   *del,dynFolderPath
+   *dim,dynFolderPath,STRING,248
+   dynFolderName='DYN'
+   dynFolderPath(1)=STRCAT(imgFolderPath(1),'\')
+   dynFolderPath(1)=STRCAT(dynFolderPath(1),dynFolderName)
+   /cwd,'%imgFolderPath(1)%'
+   ! Criar pasta de imagens
+   /syp,mkdir,dynFolderName
+   /cwd,'%currDir(1)%'
+*endif
+
+! Pasta de imagens da análise de flambagem
+*if,BucklingAnalysis,GE,1,THEN
+   *del,bckFolderPath
+   *dim,bckFolderPath,STRING,248
+   bckFolderName='BCK'
+   bckFolderPath(1)=STRCAT(imgFolderPath(1),'\')
+   bckFolderPath(1)=STRCAT(bckFolderPath(1),bckFolderName)
+   /cwd,'%imgFolderPath(1)%'
+   ! Criar pasta de imagens
+   /syp,mkdir,bckFolderName
+   /cwd,'%currDir(1)%'
+*endif
+
+! Determinar a resolução das imagens
+*if,hiRes,EQ,1,THEN
+   imgRes=2400
+*else
+   imgRes=800
+*endif
+
+
+!!                                                                                                !!
+!! 2.1   GEOMETRIA                                                                                !!
+!!                                                                                                !!
+
+!! 2.1.1   DETERMINAÇÃO COMPLETA DA GEOMETRIA                                                     !!
+!!                                                                                                !!
+! Executar subrotina
+PALV_FGEO_V3
+
+!! 2.1.2   DEFINIÇÃO DAS VARIÁVEIS DE GEOMETRIA                                                   !!
+!!                                                                                                !!
+! Tipo de fabricação da seção original
+VIGA_psFab=1
+*get,parType,PARM,psFab,TYPE
+*if,parType,EQ,0,THEN
+    *if,psFab,EQ,2,THEN
+        VIGA_psFab=2
+    *endif
+*endif
+! Tipo de abertura
+VIGA_tipo=t
+! Tipo de fabricação
+*get,pType,PARM,fab,TYPE
+*if,pType,EQ,-1,THEN
+   VIGA_fab=0
+*else
+   VIGA_fab=fab
+*endif
+! Comprimento da peça
+VIGA_L=L
+! Nome do perfil
+VIGA_name=name
+! Largura da mesa superior
+VIGA_bfs=bfs
+! Largura da mesa inferior
+VIGA_bfi=bfi
+! Altura externa da peça
+VIGA_dg=dg
+! Altura da peça (plano médio das mesas)
+VIGA_dm=dg-(tfs/2)-(tfi/2)
+! Altura do T superior
+VIGA_dts=dts
+! Altura do T inferior
+VIGA_dti=dti
+! Altura do T superior (plano médio da mesa superior)
+VIGA_dtms=dtms
+! Altura do T inferior (plano médio da mesa inferior)
+VIGA_dtmi=dtmi
+! Altura da abertura
+VIGA_d0=d0
+! Largura do montante da alma
+VIGA_sw=sw
+! Largura da abertura
+VIGA_s0=s0
+! Distância entre aberturas
+VIGA_se=se
+! Ângulo da abertura
+VIGA_theta=theta
+! Largura do enrijecedor de abertura
+VIGA_bos=bos
+! Ângulo de inclinação da barra (rotação em torno de Z)
+VIGA_rotZ=rotZ
+! Ângulo de giro da seção transversal (rotação em torno de X)
+VIGA_rotX=rotX
+! Coordenadas da posição inicial da peça
+VIGA_x0=0
+VIGA_y0=0
+VIGA_z0=0
+! Largura do primeiro montante da alma
+VIGA_swi=swi
+! Largura do último montante da alma
+VIGA_swf=swf
+! Altura da alma (metade superior)
+VIGA_dws=dts+(d0/2)-tfs
+! Altura da alma (metade inferior)
+VIGA_dwi=dti+(d0/2)-tfi
+! Altura total da alma
+VIGA_dw=VIGA_dws+VIGA_dwi
+! Altura da alma (T superior)
+VIGA_dwts=dts-tfs
+! Altur da alma (T inferior)
+VIGA_dwti=dti-tfi
+! Altura da alma (metade superior, plano médio da mesa superior)
+VIGA_dwms=dtms+(d0/2)
+! Altura da alma (metade inferior, plano médio da mesa inferior)
+VIGA_dwmi=dtmi+(d0/2)
+! Área da seção transversal (centro do montante)
+VIGA_area=(bfs*tfs)+(bfi*tfi)+(VIGA_dwms*tws)+(VIGA_dwmi*twi)
+! Aberturas a fechar
+*get,ParType,PARM,closeOp,TYPE
+*if,ParType,EQ,0,AND,closeOp,GT,0,THEN
+   *get,ParType,PARM,closedOpenings,TYPE
+   *if,ParType,EQ,1,THEN
+      *get,closedCount,PARM,closedOpenings,DIM,X
+      *if,closedCount,GE,1,THEN
+         closeOp=closedCount
+         *del,VIGA_closed
+         *dim,VIGA_closed,ARRAY,closedCount
+         *vfun,VIGA_closed,ASORT,closedOpenings
+      *else
+         closeOp=0
+      *endif
+   *else
+      closeOp=0
+   *endif
+*else
+   closeOp=0
+*endif
+! Determinar valores máximo e mínimo de largura das mesas
+*if,VIGA_bfs,LE,VIGA_bfi,THEN
+   bfMax=VIGA_bfi
+   bfMin=VIGA_bfs
+*else
+   bfMax=VIGA_bfs
+   bfMin=VIGA_bfi
+*endif
+! Determinar valores máximo de mínimo da altura dos Ts
+*if,VIGA_dtms,LE,VIGA_dtmi,THEN
+   dtmMax=VIGA_dtmi
+   dtmMin=VIGA_dtms
+*else
+   dtmMax=VIGA_dtms
+   dtmMin=VIGA_dtmi
+*endif
+! Determinar posição vertical do centro da linha de aberturas
+yOpLine=VIGA_dwmi
+! Espessura adicional da mesa superior
+*get,ParType,PARM,tfs_EXTRA,TYPE
+*if,ParType,NE,0,THEN
+   tfs_EXTRA=0
+*endif
+! Espessura adicional da mesa inferior
+*get,ParType,PARM,tfi_EXTRA,TYPE
+*if,ParType,NE,0,THEN
+   tfi_EXTRA=0
+*endif
+
+
+!!                                                                                                !!
+!! 2.2   ELEMENTOS                                                                                !!
+!!                                                                                                !!
+! Elemento SHELL181
+TYPE_SHELL181=1
+! Elemento MASS21 (restrições nas faces)
+TYPE_MASS21=2
+! Elemento MPC184 (restrições nas faces)
+TYPE_MPC184=3
+! Elemento LINK180 (restrições nas faces)
+TYPE_LINK180=4
+! Elemento BEAM188 (restrições nas faces)
+TYPE_BEAM188=5
+! Elemento COMBIN14 (molas de torção)
+TYPE_COMBIN14=6
+! Tipo de integração
+*get,pType,PARM,FullIntegration,TYPE
+*if,pType,EQ,-1,THEN
+   FullIntegration=0
+*endif
+
+
+!!                                                                                                !!
+!! 2.3   MATERIAIS                                                                                !!
+!!                                                                                                !!
+! Definição de material único
+*get,parType,PARM,SingleMatStatus,TYPE
+*IF,parType,NE,0,THEN
+   SingleMatStatus=0
+*endif
+*if,SingleMatStatus,EQ,1,THEN
+   ! Mesa inferior
+   MesaInf_E=MesaSup_E
+   MesaInf_fy=MesaSup_fy
+   MesaInf_v=MesaSup_v
+   MesaInf_p=MesaSup_p
+   MesaInf_law=MesaSup_law
+   MesaInf_hard=MesaSup_hard
+   MesaInf_ptCount=MesaSup_ptCount
+   *if,MesaInf_ptCount,GT,0,THEN
+      *del,MesaInf_sVec
+      *vfun,MesaInf_sVec,COPY,MesaSup_sVec
+      *del,MesaInf_eVec
+      *vfun,MesaInf_eVec,COPY,MesaSup_eVec
+   *endif
+   ! Alma (metade superior)
+   AlmaSup_E=MesaSup_E
+   AlmaSup_fy=MesaSup_fy
+   AlmaSup_v=MesaSup_v
+   AlmaSup_p=MesaSup_p
+   AlmaSup_law=MesaSup_law
+   AlmaSup_hard=MesaSup_hard
+   AlmaSup_ptCount=MesaSup_ptCount
+   *if,AlmaSup_ptCount,GT,0,THEN
+      *del,AlmaSup_sVec
+      *vfun,AlmaSup_sVec,COPY,MesaSup_sVec
+      *del,AlmaSup_eVec
+      *vfun,AlmaSup_eVec,COPY,MesaSup_eVec
+   *endif
+   ! Alma (metade inferior)
+   AlmaInf_E=MesaSup_E
+   AlmaInf_fy=MesaSup_fy
+   AlmaInf_v=MesaSup_v
+   AlmaInf_p=MesaSup_p
+   AlmaInf_law=MesaSup_law
+   AlmaInf_hard=MesaSup_hard
+   AlmaInf_ptCount=MesaSup_ptCount
+   *if,AlmaInf_ptCount,GT,0,THEN
+      *del,AlmaInf_sVec
+      *vfun,AlmaInf_sVec,COPY,MesaSup_sVec
+      *del,AlmaInf_eVec
+      *vfun,AlmaInf_eVec,COPY,MesaSup_eVec
+   *endif
+   ! Enrijecedores
+   Enrij_E=MesaSup_E
+   Enrij_fy=MesaSup_fy
+   Enrij_v=MesaSup_v
+   Enrij_p=MesaSup_p
+   Enrij_law=MesaSup_law
+   Enrij_hard=MesaSup_hard
+   Enrij_ptCount=MesaSup_ptCount
+   *if,Enrij_ptCount,GT,0,THEN
+      *del,Enrij_sVec
+      *vfun,Enrij_sVec,COPY,MesaSup_sVec
+      *del,Enrij_eVec
+      *vfun,Enrij_eVec,COPY,MesaSup_eVec
+   *endif
+*endif
+! Fator global de redução do módulo de elasticidade
+*get,varClass,PARM,ERedFact,TYPE
+*if,varClass,EQ,-1,THEN
+   ERedFact=1
+*endif
+! Fator global de redução da tensão de escoamento
+*get,varClass,PARM,fyRedFact,TYPE
+*if,varClass,EQ,-1,THEN
+   fyRedFact=1
+*endif
+! Material da mesa superior
+MAT_MesaSup=1
+MAT_MesaSup_EX=MesaSup_E*ERedFact
+MAT_MesaSup_POISSON=MesaSup_v
+MAT_MesaSup_DENS=MesaSup_p
+MAT_MesaSup_FY=MesaSup_fy*fyRedFact
+MAT_MesaSup_law=MesaSup_law
+*if,MAT_MesaSup_law,EQ,1,THEN
+   MAT_MesaSup_hard=MesaSup_hard
+*else
+   MAT_MesaSup_hard=0
+*endif
+*if,MAT_MesaSup_law,EQ,2,AND,MesaSup_ptCount,GT,0,THEN
+   MAT_MesaSup_ptCount=MesaSup_ptCount
+   *del,MAT_MesaSup_sVec
+   *del,MAT_MesaSup_eVec
+   *voper,MAT_MesaSup_sVec,MesaSup_sVec,ADD
+   *voper,MAT_MesaSup_eVec,MesaSup_eVec,ADD
+*else
+   MAT_MesaSup_ptCount=0
+*endif
+! Material da mesa inferior
+MAT_MesaInf=2
+MAT_MesaInf_EX=MesaInf_E*ERedFact
+MAT_MesaInf_POISSON=MesaInf_v
+MAT_MesaInf_DENS=MesaInf_p
+MAT_MesaInf_FY=MesaInf_fy*fyRedFact
+MAT_MesaInf_law=MesaInf_law
+*if,MAT_MesaInf_law,EQ,1,THEN
+   MAT_MesaInf_hard=MesaInf_hard
+*else
+   MAT_MesaInf_hard=0
+*endif
+*if,MAT_MesaInf_law,EQ,2,AND,MesaInf_ptCount,GT,0,THEN
+   MAT_MesaInf_ptCount=MesaInf_ptCount
+   *del,MAT_MesaInf_sVec
+   *del,MAT_MesaInf_eVec
+   *voper,MAT_MesaInf_sVec,MesaInf_sVec,ADD
+   *voper,MAT_MesaInf_eVec,MesaInf_eVec,ADD
+*else
+   MAT_MesaInf_ptCount=0
+*endif
+! Material da alma (metade superior)
+MAT_AlmaSup=3
+MAT_AlmaSup_EX=AlmaSup_E*ERedFact
+MAT_AlmaSup_POISSON=AlmaSup_v
+MAT_AlmaSup_DENS=AlmaSup_p
+MAT_AlmaSup_FY=AlmaSup_fy*fyRedFact
+MAT_AlmaSup_law=AlmaSup_law
+*if,MAT_AlmaSup_law,EQ,1,THEN
+   MAT_AlmaSup_hard=AlmaSup_hard
+*else
+   MAT_AlmaSup_hard=0
+*endif
+*if,MAT_AlmaSup_law,EQ,2,AND,AlmaSup_ptCount,GT,0,THEN
+   MAT_AlmaSup_ptCount=AlmaSup_ptCount
+   *del,MAT_AlmaSup_sVec
+   *del,MAT_AlmaSup_eVec
+   *voper,MAT_AlmaSup_sVec,AlmaSup_sVec,ADD
+   *voper,MAT_AlmaSup_eVec,AlmaSup_eVec,ADD
+*else
+   MAT_AlmaSup_ptCount=0
+*endif
+! Material da alma (metade inferior)
+MAT_AlmaInf=4
+MAT_AlmaInf_EX=AlmaInf_E*ERedFact
+MAT_AlmaInf_POISSON=AlmaInf_v
+MAT_AlmaInf_DENS=AlmaInf_p
+MAT_AlmaInf_FY=AlmaInf_fy*fyRedFact
+MAT_AlmaInf_law=AlmaInf_law
+*if,MAT_AlmaInf_law,EQ,1,THEN
+   MAT_AlmaInf_hard=AlmaInf_hard
+*else
+   MAT_AlmaInf_hard=0
+*endif
+*if,MAT_AlmaInf_law,EQ,2,AND,AlmaInf_ptCount,GT,0,THEN
+   MAT_AlmaInf_ptCount=AlmaInf_ptCount
+   *del,MAT_AlmaInf_sVec
+   *del,MAT_AlmaInf_eVec
+   *voper,MAT_AlmaInf_sVec,AlmaInf_sVec,ADD
+   *voper,MAT_AlmaInf_eVec,AlmaInf_eVec,ADD
+*else
+   MAT_AlmaInf_ptCount=0
+*endif
+! Material dos enrijecedores de alma
+MAT_Enrij=5
+MAT_Enrij_EX=Enrij_E*ERedFact
+MAT_Enrij_POISSON=Enrij_v
+MAT_Enrij_DENS=Enrij_p
+MAT_Enrij_FY=Enrij_fy*fyRedFact
+MAT_Enrij_law=Enrij_law
+*if,MAT_Enrij_law,EQ,1,THEN
+   MAT_Enrij_hard=Enrij_hard
+*else
+   MAT_Enrij_hard=0
+*endif
+*if,MAT_Enrij_law,EQ,2,AND,Enrij_ptCount,GT,0,THEN
+   MAT_Enrij_ptCount=Enrij_ptCount
+   *del,MAT_Enrij_sVec
+   *del,MAT_Enrij_eVec
+   *voper,MAT_Enrij_sVec,Enrij_sVec,ADD
+   *voper,MAT_Enrij_eVec,Enrij_eVec,ADD
+*else
+   MAT_Enrij_ptCount=0
+*endif
+! Material dos enrijecedores de abertura
+MAT_OpEnrij=6
+MAT_OpEnrij_EX=Enrij_E*ERedFact
+MAT_OpEnrij_POISSON=Enrij_v
+MAT_OpEnrij_DENS=Enrij_p
+MAT_OpEnrij_FY=Enrij_fy*fyRedFact
+MAT_OpEnrij_law=Enrij_law
+*if,MAT_OpEnrij_law,EQ,1,THEN
+   MAT_OpEnrij_hard=Enrij_hard
+*else
+   MAT_OpEnrij_hard=0
+*endif
+*if,MAT_OpEnrij_law,EQ,2,AND,Enrij_ptCount,GT,0,THEN
+   MAT_OpEnrij_ptCount=Enrij_ptCount
+   *del,MAT_OpEnrij_sVec
+   *del,MAT_OpEnrij_eVec
+   *voper,MAT_OpEnrij_sVec,Enrij_sVec,ADD
+   *voper,MAT_OpEnrij_eVec,Enrij_eVec,ADD
+*else
+   MAT_OpEnrij_ptCount=0
+*endif
+! Material dos elementos de restrição
+MAT_Constr=7
+MAT_Constr_EX=MesaSup_E*1e3
+MAT_Constr_POISSON=0.5
+! Material das molas de torção
+MAT_TorsionSprings=8
+MAT_TorsionSprings_E=MesaSup_E
+
+
+!!                                                                                                !!
+!! 2.4   SEÇÕES TRANSVERSAIS                                                                      !!
+!!                                                                                                !!
+! Seção transversal das mesas
+SEC_MesaSup=1
+SEC_MesaSup_THK=tfs+tfs_EXTRA
+
+! Seção transversal das mesas
+SEC_MesaInf=2
+SEC_MesaInf_THK=tfi+tfi_EXTRA
+
+! Seção transversal da alma (metade superior)
+SEC_AlmaSup=3
+SEC_AlmaSup_THK=tws
+
+! Seção transversal da alma (metade inferior)
+SEC_AlmaInf=4
+SEC_AlmaInf_THK=twi
+
+! Seção transversal dos enrijecedores
+SEC_Enrij=5
+SEC_Enrij_THK=ts
+
+! Seção transversal dos enrijecedores de abertura
+SEC_OpEnrij=6
+SEC_OpEnrij_THK=tos
+
+! Seção transversal dos elementos de restrição
+SEC_ConstrBEAM=7
+SEC_ConstrBEAM_rad=5e-3
+
+
+!!                                                                                                !!
+!! 2.5   CONSTANTES REAIS                                                                         !!
+!!                                                                                                !!
+! Conjunto de constantes reais nulas
+REAL_NULL=1
+! Definições do elemento de massa MASS21
+REAL_MASS21=2
+! Definições do elemento de restrição (LINK)
+REAL_LINK180=3
+REAL_LINK180_area=1e-4
+! Definições das molas de torção
+REAL_COMBIN14=4
+REAL_COMBIN14_k=TorsionSprings_stiffness
+
+
+!!                                                                                                !!
+!! 2.6   IMPERFEIÇÕES GEOMÉTRICAS                                                                 !!
+!!                                                                                                !!
+! Imperfeições geométricas combinadas do Eurocode (EC3)
+GI_EC3=0
+*get,parType,PARM,GeomImperf_EC3,TYPE
+*if,parType,EQ,0,THEN
+    *if,GeomImperf_EC3,EQ,1,OR,GeomImperf_STD,eq,2,THEN
+        GI_EC3=1
+    *endif
+*endif
+! Conjunto de imeperfeições geométricas iniciais estabelecido no Eurocode (EC3)
+*if,GI_EC3,EQ,1,THEN
+    ! Executar subrotina
+    PALV_EC3IMP_V3
+    ! Imperfeição geométrica tipo 1: flexão em torno do eixo de maior inércia
+    GI1_forced=0
+    GI1_rel=SAFactor
+    ! Imperfeição geométrica tipo 2: flexão em torno do eixo de menor inércia
+    GI2_forced=0
+    GI2_rel=WAFactor
+    ! Imperfeição geométrica tipo 3: flexão do montante da alma
+    GI3_forced=0
+    GI3_rel=-PBFactor
+*endif
+
+! Conjunto padrão de imperfeições geométricas (proposto)
+*get,parType,PARM,GeomImperf_STD,TYPE
+*if,parType,EQ,0,THEN
+    *if,GeomImperf_STD,EQ,1,THEN
+       ! Flexão em torno do eixo de maior inércia
+       GI1_forced=0
+       GI1_rel=1/1000
+       ! Flexão em torno do eixo de menor inércia
+       GI2_forced=0
+       GI2_rel=1/1000
+       ! Flexão do montante da alma
+       GI3_forced=0
+       GI3_rel=-1/200
+       FlangeRot=1
+       ! Desalinhamento do montante
+       GI4_forced=0
+       GI4_rel=1
+       ! Modo de flambagem
+       GI5_forced=-1
+       GI5_rel=0
+       ! Modo de flambagem local
+       GI6_forced=-1
+       GI6_rel=0
+    *elseif,GeomImperf_STD,EQ,2,THEN
+       ! Flexão em torno do eixo de maior inércia
+       GI1_forced=0
+       GI1_rel=SAFactor
+       ! Flexão em torno do eixo de menor inércia
+       GI2_forced=0
+       GI2_rel=WAFactor
+       ! Flexão do montante da alma
+       GI3_forced=0
+       GI3_rel=-1/200
+       FlangeRot=1
+       ! Desalinhamento do montante
+       GI4_forced=0
+       GI4_rel=1
+       ! Modo de flambagem
+       GI5_forced=-1
+       GI5_rel=0
+       ! Modo de flambagem local
+       GI6_forced=-1
+       GI6_rel=0
+    *endif
+*endif
+
+! Imperfeição geométrica tipo 1: flexão em torno do eixo de maior inércia
+*if,GI1_forced,EQ,-1,THEN
+   GeomImperf1=0
+*elseif,GI1_forced,EQ,0,THEN
+   GeomImperf1=GI1_rel*VIGA_L*GI_RedFact
+*elseif,GI1_forced,EQ,1,THEN
+   GeomImperf1=GI1_dir*GI_RedFact
+*endif
+! Imperfeição geométrica tipo 2: flexão em torno do eixo de menor inércia
+*if,GI2_forced,EQ,-1,THEN
+   GeomImperf2=0
+*elseif,GI2_forced,EQ,0,THEN
+   GeomImperf2=GI2_rel*VIGA_L*GI_RedFact
+*elseif,GI2_forced,EQ,1,THEN
+   GeomImperf2=GI2_dir*GI_RedFact
+*endif
+! Imperfeição geométrica tipo 3: flexão do montante da alma
+*if,GI3_forced,EQ,-1,THEN
+   GeomImperf3=0
+*elseif,GI3_forced,EQ,0,THEN
+   GeomImperf3=GI3_rel*VIGA_dm*GI_RedFact
+*elseif,GI3_forced,EQ,1,THEN
+   GeomImperf3=GI3_dir*GI_RedFact
+*endif
+! Imperfeição geométrica tipo 4: desalinhamento das seções T superior e inferior
+*if,GI4_forced,EQ,-1,THEN
+   GeomImperf4=0
+*elseif,GI4_forced,EQ,0,THEN
+    i1=VIGA_dm/200
+    i2=SEC_AlmaSup_THK/2
+    i3=SEC_AlmaInf_THK/2
+    *if,i1,LE,i2,THEN
+       *if,i1,LE,i3,THEN
+          GeomImperf4=i1*GI4_rel*GI_RedFact
+       *else
+          GeomImperf4=i3*GI4_rel*GI_RedFact
+       *endif
+    *else
+       *if,i2,LE,i3,THEN
+          GeomImperf4=i2*GI4_rel*GI_RedFact
+       *else
+          GeomImperf4=i3*GI4_rel*GI_RedFact
+       *endif
+    *endif
+*elseif,GI4_forced,EQ,1,THEN
+   GeomImperf4=GI4_dir*GI_RedFact
+*endif
+! Imperfeição geométrica tipo 5: enésimo modo de flambagem
+*if,GI5_forced,EQ,-1,THEN
+   GeomImperf5=0
+*elseif,GI5_forced,EQ,0,THEN
+   GeomImperf5=GI5_rel*VIGA_dm*GI_RedFact
+*elseif,GI5_forced,EQ,1,THEN
+   GeomImperf5=GI5_dir*GI_RedFact
+*elseif,GI5_forced,EQ,2,THEN
+   GeomImperf5=GI5_rel*VIGA_L*GI_RedFact
+*endif
+! Imperfeição geométrica tipo 6: enésimo modo de flambagem local da alma
+*if,GI6_forced,EQ,-1,THEN
+   GeomImperf6=0
+*elseif,GI6_forced,EQ,0,THEN
+   GeomImperf6=GI6_rel*VIGA_dm*GI_RedFact
+*elseif,GI6_forced,EQ,1,THEN
+   GeomImperf6=GI6_dir*GI_RedFact
+*endif
+
+! Revisão do indicador de imperfeições geométricas iniciais
+GI_Total = ABS(GeomImperf1) + ABS(GeomImperf2) + ABS(GeomImperf3) + ABS(GeomImperf4) + ABS(GeomImperf5) + ABS(GeomImperf6)
+*if,GI_Total,EQ,0,THEN
+   GI_RedFact=0
+*endif
+
+
+!!                                                                                                !!
+!! 2.7   CARGAS                                                                                   !!
+!!                                                                                                !!
+! Obter multiplicador de cargas
+*get,ParType,PARM,UniversalLoadMultiplier,TYPE
+*if,ParType,EQ,0,THEN
+   *if,UniversalLoadMultiplier,EQ,0,THEN
+      UniversalLoadMultiplier=1
+   *endif
+   ! Cargas da flexão de quatro pontos
+   *if,LoadType1,EQ,1,THEN
+      Total4PointLoad=Total4PointLoad*UniversalLoadMultiplier
+   *endif
+   ! Cargas uniformemente distribuídas
+   *if,LoadType2,GE,1,THEN
+      *vfact,UniversalLoadMultiplier
+      *vfun,DL_ValueBeg,COPY,DL_ValueBeg
+      *vfact,UniversalLoadMultiplier
+      *vfun,DL_ValueEnd,COPY,DL_ValueEnd
+      *vfact
+   *endif
+   ! Cargas concentradas
+   *if,LoadType3,GE,1,THEN
+      *vfact,UniversalLoadMultiplier
+      *vfun,PL_Value,COPY,PL_Value
+      *vfact
+   *endif
+   ! Compressão axial
+   *if,LoadType4,EQ,1,THEN
+      CompressiveForce=CompressiveForce*UniversalLoadMultiplier
+   *endif
+   ! Momento fletor em torno de Z nas extremidades
+   *if,LoadType5,EQ,1,THEN
+      ZBendingMomentLS=ZBendingMomentLS*UniversalLoadMultiplier
+      ZBendingMomentRS=ZBendingMomentRS*UniversalLoadMultiplier
+   *endif
+   ! Momento fletor em torno de Y nas extremidades
+   *if,LoadType6,EQ,1,THEN
+      YBendingMomentLS=YBendingMomentLS*UniversalLoadMultiplier
+      YBendingMomentRS=YBendingMomentRS*UniversalLoadMultiplier
+   *endif
+*else
+   UniversalLoadMultiplier=1
+*endif
+! Verificar introdução dos tipos de carga:
+! Flexão de quatro pontos
+*if,Total4PointLoad,EQ,0,THEN
+   LoadType1=0
+*endif
+! Carga distribuída
+*get,ParType,PARM,DL_ValueBeg,TYPE
+*if,ParType,EQ,1,THEN
+   *vabs,1,0,0,0
+   *vfun,zeroCheckBeg,COPY,DL_ValueBeg
+   *vscfun,zeroSumBeg,SUM,zeroCheckBeg
+   *vabs,1,0,0,0
+   *vfun,zeroCheckEnd,COPY,DL_ValueEnd
+   *vscfun,zeroSumEnd,SUM,zeroCheckEnd
+   *if,zeroSumBeg+zeroSumEnd,EQ,0,THEN
+      LoadType2=0
+   *endif
+*endif
+! Carga concentrada
+*get,ParType,PARM,PL_Value,TYPE
+*if,ParType,EQ,1,THEN
+   *vabs,1,0,0,0
+   *vfun,zeroCheck,COPY,PL_Value
+   *vscfun,zeroSum,SUM,zeroCheck
+   *if,zeroSum,EQ,0,THEN
+      LoadType3=0
+   *endif
+*endif
+! Compressão axial
+*if,CompressiveForce,EQ,0,THEN
+   LoadType4=0
+*endif
+! Momento fletor em torno de Z
+*if,ZBendingMomentLS,EQ,0,AND,ZBendingMomentRS,EQ,0,THEN
+   LoadType5=0
+*endif
+! Momento fletor em torno de Y
+*if,YBendingMomentLS,EQ,0,AND,YBendingMomentRS,EQ,0,THEN
+   LoadType6=0
+*endif
+! Momento fletor em torno de Z nas extremidades (tipo de diagrama)
+*get,ParType,PARM,ZBMDiagram,TYPE
+*if,ParType,NE,0,THEN
+   ! Caso a variável não esteja definida: selecionar diagrama elástico
+   ZBMDiagram=0
+*endif
+! Momento fletor em torno de Y nas extremidades (tipo de diagrama)
+*get,ParType,PARM,YBMDiagram,TYPE
+*if,ParType,NE,0,THEN
+   ! Caso a variável não esteja definida: selecionar diagrama elástico
+   YBMDiagram=0
+*endif
+! Força axial nas extremidades (tipo de diagrama)
+*get,ParType,PARM,AXDiagram,TYPE
+*if,ParType,NE,0,THEN
+   ! Caso a variável não esteja definida: selecionar diagrama plástico em toda a seção
+   AXDiagram=0
+*endif
+
+
+!!                                                                                                !!
+!! 2.8   ANÁLISE                                                                                  !!
+!!                                                                                                !!
+! Análise de flambagem
+*get,ParType,PARM,BucklingAnalysis,TYPE
+*if,ParType,EQ,0,THEN
+   *if,BucklingAnalysis,EQ,1,AND,BucklingModes,LE,0,THEN
+      BucklingAnalysis=0
+   *endif
+*else
+   BucklingAnalysis=0
+*endif
+! Análise dinâmica
+*get,ParType,PARM,DynamicAnalysis,TYPE
+*if,ParType,EQ,0,THEN
+   *if,VibrationModes,LE,0,THEN
+      DynamicAnalysis=0
+   *elseif,DynamicAnalysis,EQ,2,THEN
+      *get,ParType1,PARM,FourierLoad,TYPE
+      *get,ParType2,PARM,TIncMultiplier,TYPE
+      *if,ParType1,NE,0,OR,FourierLoad,EQ,0,THEN
+         DynamicAnalysis=1
+      *endif
+      *if,ParType2,NE,0,OR,TIncMultiplier,EQ,0,THEN
+         DynamicAnalysis=1
+      *endif
+   *endif
+*else
+   DynamicAnalysis=0
+*endif
+! Armazenamento de resultados
+*get,ParType,PARM,OutresLast,TYPE
+*if,ParType,NE,0,THEN
+   OutresLast=0
+*endif
+! Solucionar análise não linear
+*get,ParType,PARM,CancelNLSolu,TYPE
+*if,ParType,EQ,-1,OR,CancelNLSolu,NE,1,THEN
+   CancelNLSolu=0
+*endif
+
+
+!!                                                                                                !!
+!! 2.9   APOIOS                                                                                   !!
+!!                                                                                                !!
+! Molas de torção
+*get,ParType1,PARM,TorsionSprings_status,TYPE
+*get,ParType2,PARM,TorsionSprings_stiffness,TYPE
+*if,ParType1,EQ,0,AND,ParType2,EQ,0,THEN
+   *if,TorsionSprings_status,NE,1,OR,TorsionSprings_stiffness,LE,0,THEN
+      TorsionSprings_status=0
+   *endif
+*else
+   TorsionSprings_status=0
+*endif
+
+
+!! —————————————————————————————————————————————————————————————————————————————————————————————— !!
+!!                                                                                                !!
+!! 3.   CRIAÇÃO DO MODELO LINEAR                                                                  !!
+!!                                                                                                !!
+!! —————————————————————————————————————————————————————————————————————————————————————————————— !!
+*msg,UI,FileName(1),CodeVersion,'CREATING SOLID MODEL...'
+%C (V%f) %/&
+%C
+
+/prep7
+
+! Desativar exibição automática
+/triad,OFF
+/nopr
+IMMED,0
+/uis,REPLOT,0
+
+!!                                                                                                !!
+!! 3.1   ELEMENTOS                                                                                !!
+!!                                                                                                !!
+! SHELL181
+ET,TYPE_SHELL181,181
+*if,FullIntegration,EQ,1,THEN
+   KEYOPT,TYPE_SHELL181,3,2
+*else
+   KEYOPT,TYPE_SHELL181,3,0
+*endif
+R,REAL_NULL,1
+! MASS21
+ET,TYPE_MASS21,21
+R,REAL_MASS21,1,1,1,1,1,1
+! MPC184 (rigid beam)
+ET,TYPE_MPC184,184
+KEYOPT,TYPE_MPC184,1,1
+KEYOPT,TYPE_MPC184,2,0
+! LINK180
+ET,TYPE_LINK180,180
+R,REAL_LINK180,REAL_LINK180_area,,0
+! BEAM188
+ET,TYPE_BEAM188,188
+! COMBIN14
+ET,TYPE_COMBIN14,14
+KEYOPT,TYPE_COMBIN14,2,4
+
+
+!!                                                                                                !!
+!! 3.2   MATERIAIS                                                                                !!
+!!                                                                                                !!
+! Material da mesa superior
+MP,EX,MAT_MesaSup,MAT_MesaSup_EX
+MP,PRXY,MAT_MesaSup,MAT_MesaSup_POISSON
+MP,DENS,MAT_MesaSup,MAT_MesaSup_DENS
+! Material da mesa inferior
+MP,EX,MAT_MesaInf,MAT_MesaInf_EX
+MP,PRXY,MAT_MesaInf,MAT_MesaInf_POISSON
+MP,DENS,MAT_MesaInf,MAT_MesaInf_DENS
+! Material da alma (metade superior)
+MP,EX,MAT_AlmaSup,MAT_AlmaSup_EX
+MP,PRXY,MAT_AlmaSup,MAT_AlmaSup_POISSON
+MP,DENS,MAT_AlmaSup,MAT_AlmaSup_DENS
+! Material da alma (metade inferior)
+MP,EX,MAT_AlmaInf,MAT_AlmaInf_EX
+MP,PRXY,MAT_AlmaInf,MAT_AlmaInf_POISSON
+MP,DENS,MAT_AlmaInf,MAT_AlmaInf_DENS
+! Material dos enrijecedores de alma
+MP,EX,MAT_Enrij,MAT_Enrij_EX
+MP,PRXY,MAT_Enrij,MAT_Enrij_POISSON
+MP,DENS,MAT_Enrij,MAT_Enrij_DENS
+! Material dos enrijecedores de abertura
+MP,EX,MAT_OpEnrij,MAT_OpEnrij_EX
+MP,PRXY,MAT_OpEnrij,MAT_OpEnrij_POISSON
+MP,DENS,MAT_OpEnrij,MAT_OpEnrij_DENS
+! Material dos elementos de restrição
+MP,EX,MAT_Constr,MAT_Constr_EX
+MP,PRXY,MAT_Constr,MAT_Constr_POISSON
+! Material das molas de torção
+MP,EX,MAT_TorsionSprings,MAT_TorsionSprings_E
+
+
+!!                                                                                                !!
+!! 3.3   SEÇÕES TRANSVERSAIS                                                                      !!
+!!                                                                                                !!
+! Seção transversal da mesa superior
+SECTYPE,SEC_MesaSup,SHELL,,'MESAs'
+SECDATA,SEC_MesaSup_THK,MAT_MesaSup,,5
+SECOFFSET,USER,-tfs_EXTRA/2
+! Seção transversal da mesa inferior
+SECTYPE,SEC_MesaInf,SHELL,,'MESAi'
+SECDATA,SEC_MesaInf_THK,MAT_MesaInf,,5
+SECOFFSET,USER,tfi_EXTRA/2
+! Seção transversal da alma (superior)
+SECTYPE,SEC_AlmaSup,SHELL,,'ALMAs'
+SECDATA,SEC_AlmaSup_THK,MAT_AlmaSup,,5
+! Seção transversal da alma (inferior)
+SECTYPE,SEC_AlmaInf,SHELL,,'ALMAi'
+SECDATA,SEC_AlmaInf_THK,MAT_AlmaInf,,5
+! Seção transversal dos enrijecedores de alma
+*if,SEC_Enrij_THK,GT,0,THEN
+   SECTYPE,SEC_Enrij,SHELL,,'ENRIJ'
+   SECDATA,SEC_Enrij_THK,MAT_Enrij,,5
+*endif
+! Seção transversal dos enrijecedores de abertura
+*if,SEC_OpEnrij_THK,GT,0,THEN
+   SECTYPE,SEC_OpEnrij,SHELL,,'OPENRIJ'
+   SECDATA,SEC_OpEnrij_THK,MAT_OpEnrij,,5
+*endif
+! Seção transversal dos elementos de restrição (BEAM)
+SECTYPE,SEC_ConstrBEAM,BEAM,CSOLID
+SECDATA,SEC_ConstrBEAM_rad
+
+
+!!                                                                                                !!
+!! 3.4   SOLID MODEL                                                                              !!
+!!                                                                                                !!
+! Criar a peça
+*if,VIGA_tipo,EQ,0,THEN
+   ! Criar peça de alma cheia
+   IBEAMMS, VIGA_L, VIGA_bfs, VIGA_bfi, VIGA_dm, VIGA_x0, VIGA_y0, VIGA_z0
+   VIGA_dtms=VIGA_dm/2
+   VIGA_dtmi=VIGA_dm/2
+   VIGA_d0=0
+   VIGA_sw=0
+   VIGA_s0=0
+   VIGA_se=0
+   VIGA_sb=0
+   VIGA_theta=0
+   VIGA_swi=VIGA_L/2
+   VIGA_swf=VIGA_L/2
+   VIGA_n=0
+   xBeg=VIGA_swi
+   xEnd=VIGA_L-VIGA_swf
+*elseif,VIGA_tipo,EQ,1,THEN
+   ! Definição de aberturas a fechar
+   *if,closeOp,NE,0,THEN
+      *del,VCASTMS_ARR_closedOpenings
+      *dim,VCASTMS_ARR_closedOpenings,ARRAY,closeOp
+      *vfun,VCASTMS_ARR_closedOpenings,COPY,VIGA_closed
+   *else
+      *del,VCASTMS_ARR_closedOpenings
+   *endif
+   ! Criar peça castelada
+   VCASTMS, VIGA_L, VIGA_bfs, VIGA_bfi, VIGA_dm, VIGA_dtms, VIGA_dtmi, VIGA_d0, VIGA_sw, VIGA_s0, VIGA_se, VIGA_theta, VIGA_bos, VIGA_x0, VIGA_y0, VIGA_z0, VIGA_swi, VIGA_swf
+   VIGA_L=VCASTMS_VAR_L
+   VIGA_bfs=VCASTMS_VAR_bfs
+   VIGA_bfi=VCASTMS_VAR_bfi
+   VIGA_dm=VCASTMS_VAR_dm
+   VIGA_dtms=VCASTMS_VAR_dtms
+   VIGA_dtmi=VCASTMS_VAR_dtmi
+   VIGA_d0=VCASTMS_VAR_d0
+   VIGA_sw=VCASTMS_VAR_sw
+   VIGA_s0=VCASTMS_VAR_s0
+   VIGA_se=VCASTMS_VAR_se
+   VIGA_sb=VCASTMS_VAR_sb
+   VIGA_theta=VCASTMS_VAR_theta
+   VIGA_bos=VCASTMS_VAR_bos
+   VIGA_x0=VCASTMS_VAR_x0
+   VIGA_y0=VCASTMS_VAR_y0
+   VIGA_z0=VCASTMS_VAR_z0
+   VIGA_swi=VCASTMS_VAR_swi
+   VIGA_swf=VCASTMS_VAR_swf
+   VIGA_n=VCASTMS_VAR_n
+   xBeg=VIGA_swi
+   xEnd=VIGA_L-VIGA_swf
+*elseif,VIGA_tipo,EQ,2,THEN
+   ! Definição de aberturas a fechar
+   *if,closeOp,NE,0,THEN
+      *del,VCELUMS_ARR_closedOpenings
+      *dim,VCELUMS_ARR_closedOpenings,ARRAY,closeOp
+      *vfun,VCELUMS_ARR_closedOpenings,COPY,VIGA_closed
+   *else
+      *del,VCELUMS_ARR_closedOpenings
+   *endif
+   ! Criar peça celular
+   VCELUMS, VIGA_L, VIGA_bfs, VIGA_bfi, VIGA_dm, VIGA_dtms, VIGA_dtmi, VIGA_d0, VIGA_sw, VIGA_s0, VIGA_se, VIGA_theta, VIGA_bos, VIGA_x0, VIGA_y0, VIGA_z0, VIGA_swi, VIGA_swf
+   VIGA_L=VCELUMS_VAR_L
+   VIGA_bfs=VCELUMS_VAR_bfs
+   VIGA_bfi=VCELUMS_VAR_bfi
+   VIGA_dm=VCELUMS_VAR_dm
+   VIGA_dtms=VCELUMS_VAR_dtms
+   VIGA_dtmi=VCELUMS_VAR_dtmi
+   VIGA_d0=VCELUMS_VAR_d0
+   VIGA_sw=VCELUMS_VAR_sw
+   VIGA_s0=VCELUMS_VAR_s0
+   VIGA_se=VCELUMS_VAR_se
+   VIGA_sb=VCELUMS_VAR_sb
+   VIGA_theta=VCELUMS_VAR_theta
+   VIGA_bos=VCELUMS_VAR_bos
+   VIGA_x0=VCELUMS_VAR_x0
+   VIGA_y0=VCELUMS_VAR_y0
+   VIGA_z0=VCELUMS_VAR_z0
+   VIGA_swi=VCELUMS_VAR_swi
+   VIGA_swf=VCELUMS_VAR_swf
+   VIGA_n=VCELUMS_VAR_n
+   xBeg=VIGA_swi
+   xEnd=VIGA_L-VIGA_swf
+*else
+   ! Exibir mensagem de erro
+   *msg,ERROR,1
+   ERROR: INVALID TYPE (%I).
+*endif
+
+
+!!                                                                                                !!
+!! 3.5   SECCIONAR PEÇA                                                                           !!
+!!                                                                                                !!
+! Executar subrotina
+PALV_SEC_V3
+
+
+!!                                                                                                !!
+!! 3.6   CRIAR ENRIJECEDORES DE ALMA                                                              !!
+!!                                                                                                !!
+! Executar subrotina
+PALV_STIFF_V3
+
+! Vista em quatro janelas
+VIEW4W
+
+/show
+APLOT
+! Imagem: solid model
+PALV_TAKEPIC,'(SM)'
+
+
+!!                                                                                                !!
+!! 3.7   ATRIBUTOS DA MALHA                                                                       !!
+!!                                                                                                !!
+*msg,UI,FileName(1),CodeVersion,'CREATING FINITE ELEMENT MODEL...'
+%C (V%f) %/&
+%C
+
+REAL,REAL_NULL
+
+! Executar subrotina
+PALV_MATT_V3
+
+
+!!                                                                                                !!
+!! 3.8   MODELO DE ELEMENTOS FINITOS                                                              !!
+!!                                                                                                !!
+
+!! 3.8.1   CHAPAS (SHELL181)                                                                      !!
+!!                                                                                                !!
+! Calcular dimensão do elemento
+*if,ESizeOverride,EQ,1,THEN
+   ElementSize=MinESize
+*else
+   *get,PType,PARM,FineMesh,TYPE
+   *if,PType,EQ,0,AND,FineMesh,EQ,1,THEN
+      *if,VIGA_tipo,EQ,0,THEN
+         ESize2=bfMin/8
+         ESize3=VIGA_dm/30
+         ESize5=VIGA_L/200
+         ESize1=ESize5
+         ESize4=ESize5
+      *else
+         ESize1=VIGA_sw/8
+         ESize2=bfMin/8
+         ESize3=dtmMin/6
+         ESize4=VIGA_s0/16
+         ESize5=VIGA_L/200
+      *endif
+   *else
+      *if,VIGA_tipo,EQ,0,THEN
+         ESize2=bfMin/4
+         ESize3=VIGA_dm/15
+         ESize5=VIGA_L/100
+         ESize1=ESize5
+         ESize4=ESize5
+      *else
+         ESize1=VIGA_sw/4
+         ESize2=bfMin/4
+         ESize3=dtmMin/3
+         ESize4=VIGA_s0/8
+         ESize5=VIGA_L/100
+      *endif
+   *endif
+   ESize6=MinESize
+   *del,ESizeVec
+   *dim,ESizeVec,ARRAY,5
+   ESizeVec(1)=ESize1,ESize2,ESize3,ESize4,ESize5
+   *vscfun,ElementSize,MIN,ESizeVec
+   *if,ElementSize,LT,ESize6,THEN
+      ElementSize=ESize6
+   *endif
+*endif
+! Atribuir dimensão do elemento
+ALLSEL
+AESIZE,ALL,ElementSize
+! Criar malha
+AMESH,ALL
+! Definir sistema local dos elementos
+LOCAL,47,CART,0,0,0,0,0,0
+EMODIF,ALL,ESYS,47
+
+!! 3.8.2   ELEMENTOS DE RESTRIÇÃO NOS APOIOS                                                      !!
+!!                                                                                                !!
+ALLSEL
+SELTOL,1E-8
+! Executar subrotina
+PALV_SUPCONS_V3
+
+! Definir opções de visualização
+VIEW4W
+/view,3,0,0,1
+/dist,3,0.2,1
+/eshape,1
+
+/show
+/pnum,SEC,1
+/number,1
+EPLOT
+! Imagem: malha de elementos e nós
+PALV_TAKEPIC,'(MESH)'
+/eshape,0
+
+!! 3.8.3   ELEMENTOS DE MOLA DE TORÇÃO                                                            !!
+!!                                                                                                !!
+*if,TorsionSprings_status,EQ,1,THEN
+   ALLSEL
+   SELTOL,1E-8
+   ! Definir propriedades
+   MAT,MAT_TorsionSprings
+   REAL,REAL_COMBIN14
+   TYPE,TYPE_COMBIN14
+   ! Selecionar nós do eixo da mesa superior
+   NSEL,S,LOC,Z,VIGA_z0
+   NSEL,R,LOC,Y,VIGA_y0+VIGA_dm
+   NSEL,R,LOC,X,VIGA_x0,VIGA_x0+VIGA_L
+   ! Definir a rigidez das molas
+   *get,NodeCount,NODE,,COUNT
+   REAL_COMBIN14_k=REAL_COMBIN14_k*VIGA_L/NodeCount
+   R,REAL_COMBIN14,REAL_COMBIN14_k
+   ! Criar molas
+   *get,NewNode,NODE,,NUM,MAXD
+   NewNode=NewNode+1
+   NodeNum=0
+   *do,nthNode,1,NodeCount,1
+      NodeNum=NDNEXT(NodeNum)
+      xVal=NX(NodeNum)
+      yVal=NY(NodeNum)
+      zVal=NZ(NodeNum)
+      N,NewNode,xVal,yVal,zVal
+      D,NewNode,ALL,0
+      E,NodeNum,NewNode
+      NewNode=NewNode+1
+      NSEL,U,NODE,,NodeNum
+   *enddo
+   ! Criar componente com nós apoiados das molas de torção
+   CM,COMPN_TorsionSprings,NODE
+*endif
+
+
+!!                                                                                                !!
+!! 3.9   OBTER NÚMERO DOS NÓS DE RESULTADOS                                                       !!
+!!                                                                                                !!
+! Obter posições longitudinais de aplicação das cargas da flexão de quatro pontos
+*if,LoadType1,EQ,1,THEN
+   LoadPos1=VIGA_x0+(VIGA_L-LoadDistance)/2
+   LoadPos2=VIGA_x0+(VIGA_L+LoadDistance)/2
+*endif
+! Obter posição longitudinal de aplicação da primeira carga concentrada transversal
+*if,LoadType3,GE,1,THEN
+   LoadPos3=VIGA_x0+PL_Pos(1)
+*endif
+! Executar subrotina
+PALV_RSTNDS_V3
+
+
+!!                                                                                                !!
+!! 3.10  SALVAR MODELO                                                                            !!
+!!                                                                                                !!
+! Definir vistas em quatro janelas
+VIEW4W
+/dscale,1,auto
+/dscale,2,auto
+/dscale,3,auto
+/dscale,4,auto
+APLOT
+! Alterar arquivo de saída (/output)
+*del,OutputPath
+*dim,OutputPath,CHAR,248
+/inquire,OutputPath,OUTPUT
+/output,'tmpOut',OUT
+! Salvar parâmetros
+PARSAV,ALL,'AllPars',PARM
+SAVE,'BaseModel',,,MODEL
+
+
+
+!! —————————————————————————————————————————————————————————————————————————————————————————————— !!
+!!                                                                                                !!
+!! 4.   CÁLCULO DE IMPERFEIÇÕES GEOMÉTRICAS                                                       !!
+!!                                                                                                !!
+!! —————————————————————————————————————————————————————————————————————————————————————————————— !!
+
+!!                                                                                                !!
+!! 4.1   SOLUCIONAR ETAPAS DE CARGA                                                               !!
+!!                                                                                                !!
+
+!! 4.1.1   CARGA VERTICAL                                                                         !!
+!!                                                                                                !!
+! Executar subrotina
+PALV_VLOAD_V3
+PARSAV,ALL,'TempArrPars',PARM
+PARRES,NEW,'AllPars',PARM
+PARRES,CHANGE,'TempArrPars',PARM
+PARSAV,ALL,'AllPars',PARM
+
+!! 4.1.2   CARGA HORIZONTAL                                                                       !!
+!!                                                                                                !!
+! Executar subrotina
+PALV_HLOAD_V3
+PARSAV,ALL,'TempArrPars',PARM
+PARRES,NEW,'AllPars',PARM
+PARRES,CHANGE,'TempArrPars',PARM
+PARSAV,ALL,'AllPars',PARM
+
+!! 4.1.3   CARGA NA ALMA                                                                          !!
+!!                                                                                                !!
+! Executar subrotina
+PALV_WLOAD_V3
+PARSAV,ALL,'TempArrPars',PARM
+PARRES,NEW,'AllPars',PARM
+PARRES,CHANGE,'TempArrPars',PARM
+PARSAV,ALL,'AllPars',PARM
+
+!! 4.1.4   MODO DE FLAMBAGEM                                                                      !!
+!!                                                                                                !!
+! Executar subrotina
+PALV_EBUCK_V3
+/eof
+PARSAV,ALL,'TempArrPars',PARM
+PARRES,NEW,'AllPars',PARM
+PARRES,CHANGE,'TempArrPars',PARM
+PARSAV,ALL,'AllPars',PARM
+
+!! 4.1.5   MODO DE FLAMBAGEM LOCAL                                                                !!
+!!                                                                                                !!
+! Executar subrotina
+PALV_LBUCK_V3
+PARSAV,ALL,'TempArrPars',PARM
+PARRES,NEW,'AllPars',PARM
+PARRES,CHANGE,'TempArrPars',PARM
+PARSAV,ALL,'AllPars',PARM
+
+!! 4.1.6   ANÁLISE DINÂMICA                                                                       !!
+!!                                                                                                !!
+! Executar subrotina
+PALV_DYN_V3
+PARSAV,ALL,'TempArrPars',PARM
+PARRES,NEW,'AllPars',PARM
+PARRES,CHANGE,'TempArrPars',PARM
+PARSAV,ALL,'AllPars',PARM
+
+
+
+!! —————————————————————————————————————————————————————————————————————————————————————————————— !!
+!!                                                                                                !!
+!! 5.   CRIAÇÃO DO MODELO NÃO-LINEAR                                                              !!
+!!                                                                                                !!
+!! —————————————————————————————————————————————————————————————————————————————————————————————— !!
+FINISH
+/filname,FileName(1),1
+/prep7
+RESUME,'BaseModel',,,0,1
+PARRES,NEW,'AllPars',PARM
+! Restaurar arquivo de saída original (/output)
+/output,%OutputPath(1)%,,,APPEND
+ALLSEL
+/gopr
+/uis,MSGPOP,2
+
+*msg,UI,FileName(1),CodeVersion,'NONLINEAR ANALYSIS: ','Solving...'
+%C (V%f) %/&
+%C %/&
+%C
+
+
+!!                                                                                                !!
+!! 5.1   MATERIAIS                                                                                !!
+!!                                                                                                !!
+
+!! 5.1.1   CORRIGIR DIAGRAMA MULTILINEAR EM FUNÇÃO DO FATOR DE REDUÇÃO DE E                       !!
+!!                                                                                                !!
+! Executar subrotina
+PALV_ECORR_V3
+
+!! 5.1.2   DECLARAR MATERIAIS NÃO LINEARES                                                        !!
+!!                                                                                                !!
+! Definir material não-linear (mesa superior)
+*if,MAT_MesaSup_ptCount,EQ,0,THEN
+   ! Material bilinear
+   TB,BISO,MAT_MesaSup,,2
+   TBDATA,,MAT_MesaSup_FY,MAT_MesaSup_hard
+*elseif,MAT_MesaSup_ptCount,GT,0,THEN
+   ! Material multilinear
+   TB,MISO,MAT_MesaSup,1,MAT_MesaSup_ptCount
+   TBTEMP,0
+   *do,nthPt,1,MAT_MesaSup_ptCount,1
+      stress=MAT_MesaSup_sVec(nthPt)
+      strain=MAT_MesaSup_eVec(nthPt)
+      TBPT,DEFI,strain,stress
+   *enddo
+*endif
+! Definir material não-linear (mesa inferior)
+*if,MAT_MesaInf_ptCount,EQ,0,THEN
+   ! Material bilinear
+   TB,BISO,MAT_MesaInf,,2
+   TBDATA,,MAT_MesaInf_FY,MAT_MesaInf_hard
+*elseif,MAT_MesaInf_ptCount,GT,0,THEN
+   ! Material multilinear
+   TB,MISO,MAT_MesaInf,1,MAT_MesaInf_ptCount
+   TBTEMP,0
+   *do,nthPt,1,MAT_MesaInf_ptCount,1
+      stress=MAT_MesaInf_sVec(nthPt)
+      strain=MAT_MesaInf_eVec(nthPt)
+      TBPT,DEFI,strain,stress
+   *enddo
+*endif
+! Definir material não-linear (alma, metade superior)
+*if,MAT_AlmaSup_ptCount,EQ,0,THEN
+   ! Material bilinear
+   TB,BISO,MAT_AlmaSup,,2
+   TBDATA,,MAT_AlmaSup_FY,MAT_AlmaSup_hard
+*elseif,MAT_AlmaSup_ptCount,GT,0,THEN
+   ! Material multilinear
+   TB,MISO,MAT_AlmaSup,1,MAT_AlmaSup_ptCount
+   TBTEMP,0
+   *do,nthPt,1,MAT_AlmaSup_ptCount,1
+      stress=MAT_AlmaSup_sVec(nthPt)
+      strain=MAT_AlmaSup_eVec(nthPt)
+      TBPT,DEFI,strain,stress
+   *enddo
+*endif
+! Definir material não-linear (alma, metade inferior)
+*if,MAT_AlmaInf_ptCount,EQ,0,THEN
+   ! Material bilinear
+   TB,BISO,MAT_AlmaInf,,2
+   TBDATA,,MAT_AlmaInf_FY,MAT_AlmaInf_hard
+*elseif,MAT_AlmaInf_ptCount,GT,0,THEN
+   ! Material multilinear
+   TB,MISO,MAT_AlmaInf,1,MAT_AlmaInf_ptCount
+   TBTEMP,0
+   *do,nthPt,1,MAT_AlmaInf_ptCount,1
+      stress=MAT_AlmaInf_sVec(nthPt)
+      strain=MAT_AlmaInf_eVec(nthPt)
+      TBPT,DEFI,strain,stress
+   *enddo
+*endif
+! Definir material não-linear (enrijecedores de alma)
+*if,MAT_Enrij_ptCount,EQ,0,THEN
+   ! Material bilinear
+   TB,BISO,MAT_Enrij,,2
+   TBDATA,,MAT_Enrij_FY,MAT_Enrij_hard
+*elseif,MAT_Enrij_ptCount,GT,0,THEN
+   ! Material multilinear
+   TB,MISO,MAT_Enrij,1,MAT_Enrij_ptCount
+   TBTEMP,0
+   *do,nthPt,1,MAT_Enrij_ptCount,1
+      stress=MAT_Enrij_sVec(nthPt)
+      strain=MAT_Enrij_eVec(nthPt)
+      TBPT,DEFI,strain,stress
+   *enddo
+*endif
+! Definir material não-linear (enrijecedores de abertura)
+*if,MAT_OpEnrij_ptCount,EQ,0,THEN
+   ! Material bilinear
+   TB,BISO,MAT_OpEnrij,,2
+   TBDATA,,MAT_OpEnrij_FY,MAT_OpEnrij_hard
+*elseif,MAT_OpEnrij_ptCount,GT,0,THEN
+   ! Material multilinear
+   TB,MISO,MAT_OpEnrij,1,MAT_OpEnrij_ptCount
+   TBTEMP,0
+   *do,nthPt,1,MAT_OpEnrij_ptCount,1
+      stress=MAT_OpEnrij_sVec(nthPt)
+      strain=MAT_OpEnrij_eVec(nthPt)
+      TBPT,DEFI,strain,stress
+   *enddo
+*endif
+
+
+!!                                                                                                !!
+!! 5.2   SEÇÕES TRANSVERSAIS                                                                      !!
+!!                                                                                                !!
+! Seção transversal da mesa superior
+SECTYPE,SEC_MesaSup,SHELL,,'MESAs'
+SECDATA,SEC_MesaSup_THK,MAT_MesaSup,,5
+SECOFFSET,USER,-tfs_EXTRA/2
+! Seção transversal da mesa inferior
+SECTYPE,SEC_MesaInf,SHELL,,'MESAi'
+SECDATA,SEC_MesaInf_THK,MAT_MesaInf,,5
+SECOFFSET,USER,tfi_EXTRA/2
+! Seção transversal da alma (superior)
+SECTYPE,SEC_AlmaSup,SHELL,,'ALMAs'
+SECDATA,SEC_AlmaSup_THK,MAT_AlmaSup,,5
+*if,GeomImperf4,NE,0,THEN
+   SECOFFSET,USER,GeomImperf4/2
+*endif
+! Seção transversal da alma (inferior)
+SECTYPE,SEC_AlmaInf,SHELL,,'ALMAi'
+SECDATA,SEC_AlmaInf_THK,MAT_AlmaInf,,5
+*if,GeomImperf4,NE,0,THEN
+   SECOFFSET,USER,-GeomImperf4/2
+*endif
+
+
+!!                                                                                                !!
+!! 5.3   TENSÕES RESIDUAIS                                                                        !!
+!!                                                                                                !!
+! Executar subrotina
+LoadStepCount=0
+*if,IncludeResidualStresses,GT,0,THEN
+   PALV_RSLDST_V3
+   LoadStepCount=resLoadSteps
+*endif
+
+
+!!                                                                                                !!
+!! 5.4   APOIOS                                                                                   !!
+!!                                                                                                !!
+ALLSEL
+
+! Limpar definições dos load steps prévios
+DDELE,ALL,ALL
+FDELE,ALL,ALL
+LSCLEAR,ALL
+
+! Executar subrotina
+PALV_SUP_V3
+ALLSEL
+! Capturar imagem: apoios
+/color,U,BLUE
+/pbc,U, ,1
+/pbc,ROT,,1
+VIEW4W
+/show
+NPLOT
+PALV_TAKEPIC,'(BCUR)'
+/pbc,U, ,0
+/pbc,ROT,,0
+
+
+!!                                                                                                !!
+!! 5.5   CARREGAMENTO                                                                             !!
+!!                                                                                                !!
+! Executar subrotina
+PALV_LOAD_V3
+ALLSEL
+! Capturar imagem: cargas aplicadas (escala uniforme)
+ESEL,U,ELEM,,ALL
+ASEL,U,AREA,,ALL
+KSEL,U,KP,,ALL
+/vscale,ALL,,1
+/pbc,F,,1
+VIEW4W
+/show
+NPLOT
+PALV_TAKEPIC,'(BCFu)'
+/pbc,F,,0
+! Capturar imagem: cargas aplicadas (escala em função da magnitude)
+ALLSEL
+/vscale,ALL,,0
+/pbc,F,,1
+VIEW4W
+/show
+NPLOT
+PALV_TAKEPIC,'(BCF)'
+/pbc,F,,0
+
+
+!!                                                                                                !!
+!! 5.6   IMPERFEIÇÕES GEOMÉTRICAS INICIAIS                                                        !!
+!!                                                                                                !!
+/prep7
+
+ALLSEL
+! Importação das imperfeições geométricas iniciais
+*if,UpGeomFactor1,NE,0,THEN
+   UPGEOM,UpGeomFactor1,1,1,'GI1FName',RST
+   /delete,'GI1FName','rst'
+   /delete,'GI1FName','full'
+   /delete,'GI1FName','esav'
+   /delete,'GI1FName','bcs'
+   /delete,'GI1FName','mntr'
+   /delete,'GI1FName','stat'
+*endif
+*if,UpGeomFactor2,NE,0,THEN
+   UPGEOM,UpGeomFactor2,1,1,'GI2FName',RST
+   /delete,'GI2FName','rst'
+   /delete,'GI2FName','full'
+   /delete,'GI2FName','esav'
+   /delete,'GI2FName','bcs'
+   /delete,'GI2FName','mntr'
+   /delete,'GI2FName','stat'
+*endif
+*if,UpGeomFactor3,NE,0,THEN
+   UPGEOM,UpGeomFactor3,1,1,'GI3FName',RST
+   /delete,'GI3FName','rst'
+   /delete,'GI3FName','full'
+   /delete,'GI3FName','esav'
+   /delete,'GI3FName','bcs'
+   /delete,'GI3FName','mntr'
+   /delete,'GI3FName','stat'
+*endif
+*if,UpGeomFactor5,NE,0,OR,BucklingAnalysis,EQ,1,THEN
+   *if,UpGeomFactor5,NE,0,THEN
+      UPGEOM,UpGeomFactor5,1,GI5_mode,'GI5FName',RST
+   *endif
+   /delete,'GI5FName','rst'
+   /delete,'GI5FName','full'
+   /delete,'GI5FName','esav'
+   /delete,'GI5FName','bcs'
+   /delete,'GI5FName','mntr'
+   /delete,'GI5FName','stat'
+   /delete,'GI5FName','mode'
+*endif
+*if,UpGeomFactor6,NE,0,THEN
+   UPGEOM,UpGeomFactor6,1,GI6_mode,'GI6FName',RST
+   /delete,'GI6FName','rst'
+   /delete,'GI6FName','full'
+   /delete,'GI6FName','esav'
+   /delete,'GI6FName','bcs'
+   /delete,'GI6FName','mntr'
+   /delete,'GI6FName','stat'
+   /delete,'GI6FName','mode'
+*endif
+
+! Capturar imagem da geometria inicial
+ALLSEL
+ESEL,U,SEC,,SEC_Enrij
+ESEL,U,SEC,,SEC_OpEnrij
+ESEL,U,MAT,,MAT_Constr
+/show
+/eshape,1
+/pnum,SEC,1
+/number,1
+EPLOT
+! Imagem: malha de elementos e nós
+PALV_TAKEPIC,'(NLGEO)'
+/eshape,0
+ALLSEL
+
+
+!!                                                                                                !!
+!! 5.7   SOLUÇÃO DA ANÁLISE NÃO LINEAR                                                            !!
+!!                                                                                                !!
+/prep7
+
+! Opções de solução
+ANTYPE,0
+NLGEOM,LargeDisp
+NSUBST,SubstepCount,SubstepCount*2
+
+! Nó central inferior
+ALLSEL
+SolNode=NODE(VIGA_x0+(VIGA_L/2),VIGA_y0,VIGA_z0)
+
+! Opções de solução para arc-length ativado
+*if,ArcLenStatus,EQ,1,THEN
+   ! Ligar método e definir tolerâncias
+   ARCLEN,ON,MaxArcMult,MinArcMult
+   ! Determinar tipo de comportamento para término de análise
+   *if,ArcLenTerm,EQ,0,THEN
+      ARCTRM,OFF
+   *elseif,ArcLenTerm,EQ,1,THEN
+      ARCTRM,L
+   *elseif,ArcLenTerm,EQ,2,THEN
+      ! Fator de modificação do deslocamento máximo permitido
+      AbsDOFCut=0
+      *get,parType,PARM,ALDOFLimCut,TYPE
+      *if,parType,NE,0,THEN
+         ALDOFLimCut=1
+      *else
+         *if,ALDOFLimCut,EQ,0,THEN
+            ALDOFLimCut=1
+         *elseif,ALDOFLimCut,LT,0,THEN
+            AbsDOFCut=ABS(ALDOFLimCut)
+         *endif
+      *endif
+      *if,AbsDOFCut,EQ,0,THEN
+         MaxALDisplacement=(VIGA_L/(2*ALDOFLimCut))/(VIGA_dm/SEC_AlmaSup_THK)
+      *else
+         MaxALDisplacement=AbsDOFCut
+      *endif
+      ARCTRM,U,MaxALDisplacement,SolNode,UY
+   *endif
+*else
+   NROPT,AUTO
+*endif
+
+! Salvar load step
+startTime=LoadStepCount
+TIME,LoadStepCount+1
+KBC,0
+NROPT,FULL
+NCNV,2
+LSWRITE,LoadStepCount+1
+
+! Opções de solução
+/solu
+ARCLEN,OFF
+! Monitorar graus de liberdade
+PALV_MNTR_V3
+! Determinar quais resultados armazenar
+*if,OutresLast,EQ,1,THEN
+   ! Armazenar apenas resultados do último substep
+   OUTRES,ERASE
+   OUTRES,ALL,LAST
+*else
+   ! Armazenar resultados de todos os substeps
+   OUTRES,ERASE
+   OUTRES,ALL,ALL
+*endif
+NCNV,2
+/uis,ABORT,OFF
+/gst,ON
+
+! Escrever primeira parte do memorial de cálculo
+PALV_MEMOP1_V3
+
+! Salvar modelo
+SAVE,'%FileName(1)% ',DB,,ALL
+
+! Solução da análise não linear
+*if,CancelNLSolu,EQ,0,THEN
+   ! Solucionar conjunto de load steps
+   /uis,ABORT,OFF
+   KEYW,pr_sgui,1
+   LSSOLVE,1,LoadStepCount+1
+   KEYW,pr_sgui,0
+
+   *msg,UI,FileName(1),CodeVersion,'NONLINEAR ANALYSIS: ','Solution is done!'
+%C (V%f) %/&
+%C %/&
+%C
+
+*else
+   *msg,UI,FileName(1),CodeVersion,'NONLINEAR ANALYSIS: ','Cancelled.'
+%C (V%f) %/&
+%C %/&
+%C
+
+*endif
+
+FINISH
+
+
+
+
+
+
+
+
+

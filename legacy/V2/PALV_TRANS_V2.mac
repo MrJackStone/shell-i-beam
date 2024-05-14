@@ -1,0 +1,272 @@
+
+!! 4.1.6.2   ANÁLISE TRANSIENTE                                                                   !!
+
+*msg,UI,FileName(1),CodeVersion,'DYNAMIC ANALYSIS:','Transient'
+%C (V%f) %/&
+%C %/&
+%C
+
+/solu
+ALLSEL
+! Nova análise transiente (carga de caminhada)
+ANTYPE,TRANS,NEW
+! Método de solução: full
+TRNOPT,FULL
+! Formulação da matriz de massa: element-dependent
+LUMPM,0
+
+! Cálculo dos parâmetros da análise transiente
+!   Coeficiente alfa de amortecimento (multiplicador da matriz de massa)
+alfa=(2*DampingRatio*omega1*omega2)/(omega1+omega2)
+!   Coeficiente beta de amortecimento (multiplicador da matriz de rigidez)
+beta=(2*DampingRatio)/(omega1+omega2)
+!   Tempo ao final da análise transiente
+TransTime=(1/ModalFreq1)*30
+!   Tempo a partir do qual prevalece a resposta estacionária
+TransStationaryTime=(1/ModalFreq1)*10
+!   Incremento de tempo
+TimeIncrement=TIncMultiplier*(1/ModalFreq1)
+
+! Obtenção do número do nó de aplicação de carga da análise transiente
+DynSolNode=NODE(VIGA_x0+(VIGA_L/2),VIGA_y0+VIGA_dm,VIGA_z0)
+DynBotNode=NODE(VIGA_x0+(VIGA_L/2),VIGA_y0,VIGA_z0)
+
+! Atribuição dos coeficientes de amortecimento
+ALPHAD,alfa
+BETAD,beta
+
+! Definição do incremento de tempo
+DELTIM,TimeIncrement,0.1*TimeIncrement,TimeIncrement,OFF
+! Valor do tempo ao final da análise transiente
+TIME,TransTime
+! Stepped loading
+KBC,1
+! Ligar efeitos transientes
+TIMINT,ON,ALL
+
+! Registrar resultados para todos os substeps
+OUTRES,ERASE
+OUTRES,NSOL,ALL
+OUTRES,RSOL,ALL
+OUTRES,V,ALL
+OUTRES,A,ALL
+OUTRES,ESOL,ALL
+OUTRES,NLOA,ALL
+OUTRES,STRS,ALL
+OUTRES,MISC,ALL
+
+! LOAD FUNCTION
+! Deletar parâmetros
+*del,_FNCNAME
+*del,_FNCMTID
+*del,_FNCCSYS
+! Nome da função
+*set,_FNCNAME,'WALK'
+! Declarar sistema de coordenadas para aplicação da força
+*set,_FNCCSYS,0
+! Inicializar tabela do carregamento
+*dim,%_FNCNAME%,TABLE,6,64,1,,,,%_FNCCSYS%
+! Gerar tabela do carregamento
+!   Equação: FourierLoad*(1+0.5*cos(2*{PI}*1*2.0*{TIME})+0.2*cos(2*{PI}*2*2.0*
+!            {TIME}+0.5*{PI})+0.1*cos(2*{PI}*3*2.0*{TIME}+0.5*{PI})+
+!            0.05*cos(2*{PI}*4*2.0*{TIME}+0.5*{PI}))
+*set,%_FNCNAME%(0,0,1), 0.0, -999
+*set,%_FNCNAME%(2,0,1), 0.0
+*set,%_FNCNAME%(3,0,1), 0.0
+*set,%_FNCNAME%(4,0,1), 0.0
+*set,%_FNCNAME%(5,0,1), 0.0
+*set,%_FNCNAME%(6,0,1), 0.0
+*set,%_FNCNAME%(0,1,1), 1.0, -1, 0, 2, 0, 0, 0
+*set,%_FNCNAME%(0,2,1), 0.0, -2, 0, 3.14159265358979310, 0, 0, -1
+*set,%_FNCNAME%(0,3,1),   0, -3, 0, 1, -1, 3, -2
+*set,%_FNCNAME%(0,4,1), 0.0, -1, 0, 1, 0, 0, -3
+*set,%_FNCNAME%(0,5,1), 0.0, -2, 0, 1, -3, 3, -1
+*set,%_FNCNAME%(0,6,1), 0.0, -1, 0, 2.0, 0, 0, -2
+*set,%_FNCNAME%(0,7,1), 0.0, -3, 0, 1, -2, 3, -1
+*set,%_FNCNAME%(0,8,1), 0.0, -1, 0, 1, -3, 3, 1
+*set,%_FNCNAME%(0,9,1), 0.0, -1, 10, 1, -1, 0, 0
+*set,%_FNCNAME%(0,10,1), 0.0, -2, 0, 0.5, 0, 0, -1
+*set,%_FNCNAME%(0,11,1), 0.0, -3, 0, 1, -2, 3, -1
+*set,%_FNCNAME%(0,12,1), 0.0, -1, 0, 1, 0, 0, -3
+*set,%_FNCNAME%(0,13,1), 0.0, -2, 0, 1, -1, 1, -3
+*set,%_FNCNAME%(0,14,1), 0.0, -1, 0, 2, 0, 0, 0
+*set,%_FNCNAME%(0,15,1), 0.0, -3, 0, 3.14159265358979310, 0, 0, -1
+*set,%_FNCNAME%(0,16,1), 0.0, -4, 0, 1, -1, 3, -3
+*set,%_FNCNAME%(0,17,1), 0.0, -1, 0, 2, 0, 0, -4
+*set,%_FNCNAME%(0,18,1), 0.0, -3, 0, 1, -4, 3, -1
+*set,%_FNCNAME%(0,19,1), 0.0, -1, 0, 2.0, 0, 0, -3
+*set,%_FNCNAME%(0,20,1), 0.0, -4, 0, 1, -3, 3, -1
+*set,%_FNCNAME%(0,21,1), 0.0, -1, 0, 1, -4, 3, 1
+*set,%_FNCNAME%(0,22,1), 0.0, -3, 0, 0.5, 0, 0, 0
+*set,%_FNCNAME%(0,23,1), 0.0, -4, 0, 3.14159265358979310, 0, 0, -3
+*set,%_FNCNAME%(0,24,1), 0.0, -5, 0, 1, -3, 3, -4
+*set,%_FNCNAME%(0,25,1), 0.0, -3, 0, 1, -1, 1, -5
+*set,%_FNCNAME%(0,26,1), 0.0, -1, 10, 1, -3, 0, 0
+*set,%_FNCNAME%(0,27,1), 0.0, -3, 0, 0.2, 0, 0, -1
+*set,%_FNCNAME%(0,28,1), 0.0, -4, 0, 1, -3, 3, -1
+*set,%_FNCNAME%(0,29,1), 0.0, -1, 0, 1, -2, 1, -4
+*set,%_FNCNAME%(0,30,1), 0.0, -2, 0, 2, 0, 0, 0
+*set,%_FNCNAME%(0,31,1), 0.0, -3, 0, 3.14159265358979310, 0, 0, -2
+*set,%_FNCNAME%(0,32,1), 0.0, -4, 0, 1, -2, 3, -3
+*set,%_FNCNAME%(0,33,1), 0.0, -2, 0, 3, 0, 0, -4
+*set,%_FNCNAME%(0,34,1), 0.0, -3, 0, 1, -4, 3, -2
+*set,%_FNCNAME%(0,35,1), 0.0, -2, 0, 2.0, 0, 0, -3
+*set,%_FNCNAME%(0,36,1), 0.0, -4, 0, 1, -3, 3, -2
+*set,%_FNCNAME%(0,37,1), 0.0, -2, 0, 1, -4, 3, 1
+*set,%_FNCNAME%(0,38,1), 0.0, -3, 0, 0.5, 0, 0, 0
+*set,%_FNCNAME%(0,39,1), 0.0, -4, 0, 3.14159265358979310, 0, 0, -3
+*set,%_FNCNAME%(0,40,1), 0.0, -5, 0, 1, -3, 3, -4
+*set,%_FNCNAME%(0,41,1), 0.0, -3, 0, 1, -2, 1, -5
+*set,%_FNCNAME%(0,42,1), 0.0, -2, 10, 1, -3, 0, 0
+*set,%_FNCNAME%(0,43,1), 0.0, -3, 0, 0.1, 0, 0, -2
+*set,%_FNCNAME%(0,44,1), 0.0, -4, 0, 1, -3, 3, -2
+*set,%_FNCNAME%(0,45,1), 0.0, -2, 0, 1, -1, 1, -4
+*set,%_FNCNAME%(0,46,1), 0.0, -1, 0, 2, 0, 0, 0
+*set,%_FNCNAME%(0,47,1), 0.0, -3, 0, 3.14159265358979310, 0, 0, -1
+*set,%_FNCNAME%(0,48,1), 0.0, -4, 0, 1, -1, 3, -3
+*set,%_FNCNAME%(0,49,1), 0.0, -1, 0, 4, 0, 0, -4
+*set,%_FNCNAME%(0,50,1), 0.0, -3, 0, 1, -4, 3, -1
+*set,%_FNCNAME%(0,51,1), 0.0, -1, 0, 2.0, 0, 0, -3
+*set,%_FNCNAME%(0,52,1), 0.0, -4, 0, 1, -3, 3, -1
+*set,%_FNCNAME%(0,53,1), 0.0, -1, 0, 1, -4, 3, 1
+*set,%_FNCNAME%(0,54,1), 0.0, -3, 0, 0.5, 0, 0, 0
+*set,%_FNCNAME%(0,55,1), 0.0, -4, 0, 3.14159265358979310, 0, 0, -3
+*set,%_FNCNAME%(0,56,1), 0.0, -5, 0, 1, -3, 3, -4
+*set,%_FNCNAME%(0,57,1), 0.0, -3, 0, 1, -1, 1, -5
+*set,%_FNCNAME%(0,58,1), 0.0, -1, 10, 1, -3, 0, 0
+*set,%_FNCNAME%(0,59,1), 0.0, -3, 0, 0.05, 0, 0, -1
+*set,%_FNCNAME%(0,60,1), 0.0, -4, 0, 1, -3, 3, -1
+*set,%_FNCNAME%(0,61,1), 0.0, -1, 0, 1, -2, 1, -4
+*set,%_FNCNAME%(0,62,1), 0.0, -2, 0, -FourierLoad, 0, 0, -1
+*set,%_FNCNAME%(0,63,1), 0.0, -3, 0, 1, -2, 3, -1
+*set,%_FNCNAME%(0,64,1), 0.0, 99, 0, 1, -3, 0, 0
+
+! Aplicar força da caminhada
+F,DynSolNode,FY,%WALK%
+
+! Desativar aceleração da gravidade
+ACEL,0,0,0
+
+! Monitorar graus de liberdade
+NLHIST,NSOL,'TOP_UY',U,Y,DynSolNode
+NLHIST,NSOL,'TOP_UZ',U,Z,DynSolNode
+NLHIST,NSOL,'BOT_UY',U,Y,DynBotNode
+NLHIST,NSOL,'BOT_UZ',U,Z,DynBotNode
+
+! Solucionar segunda análise transiente
+ALLSEL
+/uis,ABORT,OFF
+KEYW,pr_sgui,1
+SOLVE
+KEYW,pr_sgui,0
+
+*msg,UI,FileName(1),CodeVersion,'DYNAMIC ANALYSIS:','Transient','Solution is done!'
+%C (V%f) %/&
+%C %/&
+%C %/&
+%C
+
+FINISH
+
+! PÓS-PROCESSO
+! Pós-processamento da análise transiente com carregamento ressonante
+/post1
+*get,TimeStepCount2,ACTIVE,0,SOLU,NCMSS
+
+! Excluir parâmetros
+*del,Walk_TIME
+*del,Walk_ACELY
+! Inicializar parâmetros
+*dim,Walk_TIME,ARRAY,TimeStepCount2
+*dim,Walk_ACELY,ARRAY,TimeStepCount2
+
+! Time-history postprocess
+/post26
+VIEW1W
+! Redefinir resolução das imagens
+userImgRes=imgRes
+imgRes=800
+! Número máximo de variáveis
+NUMVAR,200
+! Solução nodal (aceleração)
+NSOL,2,DynSolNode,A,Y,ACEL_Y
+VGET,Walk_TIME(1),1
+VGET,Walk_ACELY(1),2
+! Obter limites do gráfico
+GraphXMin=0
+GraphXMax=Walk_TIME(TimeStepCount2)
+*vscfun,GraphYMin,MIN,Walk_ACELY
+*vscfun,GraphYMax,MAX,Walk_ACELY
+! Criar reta vertical de corte
+*del,VerCutLine
+*dim,VerCutLine,ARRAY,2
+VerCutLine(1)=GraphYMin
+VerCutLine(2)=GraphYMax
+VPUT,VerCutLine,3,TransStationaryTime,,STATIONARY
+! Definir cor das duas primeiras curvas do gráfico (azul & vermelho)
+/color,CURVE,BLUE,1
+/color,CURVE,RED,2
+! Limites do eixo X:
+/xrange,GraphXMin,GraphXMax
+/yrange,GraphYMin,GraphYMax
+! Variável em x: tempo
+XVAR,1
+! Variável em Y: aceleração
+/show
+PLVAR,2,3
+! Salvar imagem (gráfico da aceleração)
+PALV_DYNPIC_V2,'(ACCEL)'
+
+! Escrever gráfico TIME x ACCEL em arquivo
+PALV_AGRAPH_V2
+
+! Reestabelecer a resolução original das imagens
+imgRes=userImgRes
+
+/post1
+
+! Obter o comprimento do vetor de tempo (quantidade de substeps)
+*get,TimeVecLength,PARM,Walk_TIME,DIM,X
+SubstCounter=1
+FLAG=1
+! Determinar o número do primeiro substep a partir do qual considera-se que a resposta
+!   da estrutura é estacionária
+*dowhile,FLAG
+   TimeVal=Walk_TIME(SubstCounter)
+   *if,TimeVal,GE,TransStationaryTime,THEN
+      FirstSubstep=SubstCounter
+      FLAG=0
+   *elseif,SubstCounter,GE,TimeVecLength,THEN
+      FirstSubstep=1
+      FLAG=0
+   *endif
+   SubstCounter=SubstCounter+1
+*enddo
+! Filtrar os vetores de resultados previamente calculados para que contenham somente dados
+!   dos substeps da fase de resposta estacionária da estrutura
+RedSubstepTotal=TimeVecLength-FirstSubstep+1
+*del,REDWalk_ACELY
+*dim,REDWalk_ACELY,,RedSubstepTotal
+SubstepCounter=FirstSubstep
+*do,RedSubstep,1,RedSubstepTotal,1
+   REDWalk_ACELY(RedSubstep)=ABS(Walk_ACELY(SubstepCounter))
+   SubstepCounter=SubstepCounter+1
+*enddo
+! Calcular o valor máximo (em módulo) da aceleração vertical (em Y)
+*vscfun,A2_PEAK,MAX,REDWalk_ACELY
+! Calcular o valor RMS da aceleração vertical (em Y)
+*vscfun,A2_RMS,RMS,REDWalk_ACELY
+
+! Capturar imagem da deformada com acelerações
+VIEW4W
+*vscfun,APeakLoc,LMAX,REDWalk_ACELY
+MaxAccelSubstep=APeakLoc+FirstSubstep-1
+SET,,MaxAccelSubstep
+/show
+PLNSOL,A,SUM
+PALV_DYNPIC_V2,'(ASUM)'
+
+*del,WALK
+FINISH
+
+

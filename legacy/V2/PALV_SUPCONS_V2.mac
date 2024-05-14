@@ -1,0 +1,171 @@
+!! 3.8.2   CRIAR ELEMENTOS DE RESTRIÇÃO NOS APOIOS                                                !!
+!!                                                                                                !!
+
+!! 3.8.2.1   APOIO ESQUERDO                                                                       !!
+! Selecionar o nó de referência
+NSEL,S,LOC,X,VIGA_x0
+NSEL,R,LOC,Z,VIGA_z0
+LS_midDepthNode=NODE(VIGA_x0,VIGA_y0+yOpLine,VIGA_z0)
+ALLSEL
+
+! Criar elementos de restrição no apoio
+*if,LS_WARP,NE,-1,THEN
+
+   ! Determinar tipo de elemento de restrição
+   *if,LS_WARP,EQ,0,THEN
+      TYPE,TYPE_LINK180
+      REAL,REAL_LINK180
+   *elseif,LS_WARP,EQ,1,THEN
+      TYPE,TYPE_BEAM188
+      SECNUM,SEC_ConstrBEAM
+   *endif
+   MAT,MAT_Constr
+
+   ! Selecionar nós da face
+   NSEL,S,LOC,X,VIGA_x0
+   *get,NodeCount,NODE,,COUNT
+   ! Criar elementos de restrição
+   NextNode=0
+   *do,nthNode,1,NodeCount,1
+      NextNode=NDNEXT(NextNode)
+      *if,NextNode,NE,LS_midDepthNode,THEN
+         E,LS_midDepthNode,NextNode
+      *endif
+   *enddo
+
+   ! Tipo de elemento e seção transversal para restrição nas mesas e na alma isoladamente
+   TYPE,TYPE_BEAM188
+   SECNUM,SEC_ConstrBEAM
+
+   ! Mesa superior
+   NSEL,S,LOC,X,VIGA_x0
+   NSEL,R,LOC,Y,VIGA_y0+VIGA_dm
+   LS_TFmidNode=NODE(VIGA_x0,VIGA_y0+VIGA_dm,VIGA_z0)
+   ! Obter número de nós da mesa superior
+   *get,NodeCount,NODE,,COUNT
+   NextNode=0
+   *do,nthNode,1,NodeCount,1
+      NextNode=NDNEXT(NextNode)
+      *if,NextNode,NE,LS_TFmidNode,THEN
+         E,LS_TFmidNode,NextNode
+      *endif
+   *enddo
+
+   ! Mesa inferior
+   NSEL,S,LOC,X,VIGA_x0
+   NSEL,R,LOC,Y,VIGA_y0
+   LS_BFmidNode=NODE(VIGA_x0,VIGA_y0,VIGA_z0)
+   ! Obter número de nós da mesa superior
+   *get,NodeCount,NODE,,COUNT
+   NextNode=0
+   *do,nthNode,1,NodeCount,1
+      NextNode=NDNEXT(NextNode)
+      *if,NextNode,NE,LS_BFmidNode,THEN
+         E,LS_BFmidNode,NextNode
+      *endif
+   *enddo
+
+   ! Alma
+   NSEL,S,LOC,X,VIGA_x0
+   NSEL,R,LOC,Z,VIGA_z0
+   NSEL,U,LOC,Y,VIGA_y0
+   NSEL,U,LOC,Y,VIGA_y0+VIGA_dm
+   LS_WebMidNode=NODE(VIGA_x0,VIGA_y0+yOpLine,VIGA_z0)
+   ! Obter número de nós da alma
+   *get,NodeCount,NODE,,COUNT
+   NextNode=0
+   *do,nthNode,1,NodeCount,1
+      NextNode=NDNEXT(NextNode)
+      *if,NextNode,NE,LS_WebMidNode,THEN
+         E,LS_WebMidNode,NextNode
+      *endif
+   *enddo
+
+*endif
+ALLSEL
+
+!! 3.8.2.2   APOIO DIREITO                                                                        !!
+! Selecionar o nó de referência
+NSEL,S,LOC,X,VIGA_x0+VIGA_L
+NSEL,R,LOC,Z,VIGA_z0
+RS_midDepthNode=NODE(VIGA_x0+VIGA_L,VIGA_y0+yOpLine,VIGA_z0)
+ALLSEL
+
+! Criar elementos de restrição no apoio
+*if,RS_WARP,NE,-1,THEN
+
+   ! Determinar tipo de elemento de restrição
+   *if,RS_WARP,EQ,0,THEN
+      TYPE,TYPE_LINK180
+      REAL,REAL_LINK180
+   *elseif,RS_WARP,EQ,1,THEN
+      TYPE,TYPE_BEAM188
+      SECNUM,SEC_ConstrBEAM
+   *endif
+   MAT,MAT_Constr
+
+   ! Selecionar nós da face
+   NSEL,S,LOC,X,VIGA_x0+VIGA_L
+   *get,NodeCount,NODE,,COUNT
+   ! Criar elementos de restrição
+   NextNode=0
+   *do,nthNode,1,NodeCount,1
+      NextNode=NDNEXT(NextNode)
+      *if,NextNode,NE,RS_midDepthNode,THEN
+         E,RS_midDepthNode,NextNode
+      *endif
+   *enddo
+
+   ! Tipo de elemento e seção transversal para restrição nas mesas e na alma isoladamente
+   TYPE,TYPE_BEAM188
+   SECNUM,SEC_ConstrBEAM
+
+   ! Mesa superior
+   NSEL,S,LOC,X,VIGA_x0+VIGA_L
+   NSEL,R,LOC,Y,VIGA_y0+VIGA_dm
+   RS_TFmidNode=NODE(VIGA_x0+VIGA_L,VIGA_y0+VIGA_dm,VIGA_z0)
+   ! Obter número de nós da mesa superior
+   *get,NodeCount,NODE,,COUNT
+   NextNode=0
+   *do,nthNode,1,NodeCount,1
+      NextNode=NDNEXT(NextNode)
+      *if,NextNode,NE,RS_TFmidNode,THEN
+         E,RS_TFmidNode,NextNode
+      *endif
+   *enddo
+
+   ! Mesa inferior
+   NSEL,S,LOC,X,VIGA_x0+VIGA_L
+   NSEL,R,LOC,Y,VIGA_y0
+   RS_BFmidNode=NODE(VIGA_x0+VIGA_L,VIGA_y0,VIGA_z0)
+   ! Obter número de nós da mesa superior
+   *get,NodeCount,NODE,,COUNT
+   NextNode=0
+   *do,nthNode,1,NodeCount,1
+      NextNode=NDNEXT(NextNode)
+      *if,NextNode,NE,RS_BFmidNode,THEN
+         E,RS_BFmidNode,NextNode
+      *endif
+   *enddo
+
+   ! Alma
+   NSEL,S,LOC,X,VIGA_x0+VIGA_L
+   NSEL,R,LOC,Z,VIGA_z0
+   NSEL,U,LOC,Y,VIGA_y0
+   NSEL,U,LOC,Y,VIGA_y0+VIGA_dm
+   RS_WebMidNode=NODE(VIGA_x0+VIGA_L,VIGA_y0+yOpLine,VIGA_z0)
+   ! Obter número de nós da alma
+   *get,NodeCount,NODE,,COUNT
+   NextNode=0
+   *do,nthNode,1,NodeCount,1
+      NextNode=NDNEXT(NextNode)
+      *if,NextNode,NE,RS_WebMidNode,THEN
+         E,RS_WebMidNode,NextNode
+      *endif
+   *enddo
+
+*endif
+ALLSEL
+
+
+

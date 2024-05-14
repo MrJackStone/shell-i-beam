@@ -1,0 +1,66 @@
+! Alterar para diretório de resultados
+/cwd,'%resFolderPath(1)%'
+
+! Nome do arquivo de resultados
+*del,AGraphFileName
+*dim,AGraphFileName,STRING,248
+AGraphFileName(1)=STRCAT('ACCEL_',FileName(1))
+
+
+! Criar arquivo de acelerações da análise transiente
+*cfopen,AGraphFileName(1),'graph'
+
+   ! Escrever cabeçalho
+   *vwrite,
+   ('PALV - Acceleration Graph')
+   ! Versão do código
+   *if,CodeVersion,LE,9,THEN
+      *vwrite,CodeVersion
+      ('V',F2.0,TL1,' ')
+   *elseif,CodeVersion,LE,99,THEN
+      *vwrite,CodeVersion
+      ('V',F3.0,TL1,' ')
+   *elseif,CodeVersion,LE,999,THEN
+      *vwrite,CodeVersion
+      ('V',F4.0,TL1,' ')
+   *else
+      *vwrite,CodeVersion
+      ('PALV-V',F9.0,TL1,' ')
+   *endif
+
+   ! Saltar linha
+   *vwrite,
+   (' ')
+
+   ! Título da seção
+   *vwrite,
+   ('FILE')
+   ! Referência da literatura
+   *vwrite,libReference
+;   REFERENCE = %C
+   ! Identificação do modelo
+   *vwrite,modelID
+;   MODEL ID. = %C
+   ! Nome do arquivo
+   *vwrite,FileName(1)
+;   JOBNAME   = %C
+   ! Diretório do arquivo
+   *vwrite,currDir(1)
+;   DIRECTORY = %C
+
+   ! Saltar linhas
+   *vwrite,
+   (' ')
+   *vwrite,
+   (' ')
+
+   *vwrite,
+   ('    TIME;    WALK:ACEL')
+   *vwrite,Walk_TIME(1),Walk_ACELY(1)
+   (F8.5,'; ',E12.4)
+   ! Fechar o arquivo
+*cfclos
+
+! Reverter para diretório principal
+/cwd,'%currDir(1)%'
+

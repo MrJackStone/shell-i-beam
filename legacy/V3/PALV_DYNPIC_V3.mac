@@ -1,0 +1,13 @@
+! PALV_DYNPIC_V3,imgSuffix
+! PALV_DYNPIC_V3,arg1
+
+! Alterar para diretório de imagens
+/cwd,'%dynFolderPath(1)%'
+! Nome do arquivo de imagem a ser salvo
+imgName=arg1
+! Fotografar deformada
+TAKEPIC,imgName,imgRes
+! Reverter para diretório principal
+/cwd,'%currDir(1)%'
+
+

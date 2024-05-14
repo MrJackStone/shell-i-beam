@@ -1,0 +1,1281 @@
+
+!!                                                                                                !!
+!! 6.4   ESCREVER MEMORIAL DE CÁLCULO                                                             !!
+!!                                                                                                !!
+
+!! 6.4.1   COLETAR DADOS COMPLEMENTARES                                                           !!
+!!                                                                                                !!
+! Obter número total de elementos do modelo
+ALLSEL
+*get,TotalElementCount,ELEM,,COUNT
+
+! Obter data atual
+*get,currentDate,ACTIVE,,DATE
+currDay=MOD(currentDate,100)
+currMonth=(MOD(currentDate,10000)-currDay)/100
+currYear=(currentDate-currMonth*100-currDay)/10000
+
+! Obter hora atual
+CTIME
+currentClock=_OUTPUT
+
+! Obter hora atual
+*get,currentTime,ACTIVE,,TIME,WALL
+
+! Calcular tempo decorrido durante a análise
+ElapsedTime=currentTime-initTime
+ElapsedTime=ElapsedTime*60
+
+! Tipo de abertura da viga
+*if,VIGA_tipo,EQ,0,THEN
+   ! Viga sem aberturas
+   OpeningType='NONE   '
+*elseif,VIGA_tipo,EQ,1,THEN
+   ! Viga com aberturas hexagonais
+   OpeningType=' HEXAGON'
+*elseif,VIGA_tipo,EQ,2,THEN
+   ! Viga com aberturas celulares
+   OpeningType='  CIRCLE'
+*endif
+
+!! 6.4.2   CRIAR ARQUIVO DE MEMORIAL DE CÁLCULO                                                   !!
+!!                                                                                                !!
+
+! Alterar para diretório de resultados
+/cwd,'%resFolderPath(1)%'
+
+! Nome do arquivo de resultados
+*del,MemoFileName
+*dim,MemoFileName,STRING,248
+MemoFileName(1)=STRCAT('MEMO_',FileName(1))
+
+! Criar arquivo de memorial de dados
+*cfopen,MemoFileName(1),'memo'
+
+   !! 6.4.2.1   CABEÇALHO DO ARQUIVO                                                              !!
+   ! Escrever cabeçalho
+   *vwrite,
+   ('PALV - Model Data')
+   ! Versão do código
+   *if,CodeVersion,LE,9,THEN
+      *vwrite,CodeVersion
+      ('V',F2.0,TL1,' ')
+   *elseif,CodeVersion,LE,99,THEN
+      *vwrite,CodeVersion
+      ('V',F3.0,TL1,' ')
+   *elseif,CodeVersion,LE,999,THEN
+      *vwrite,CodeVersion
+      ('V',F4.0,TL1,' ')
+   *else
+      *vwrite,CodeVersion
+      ('PALV-V',F9.0,TL1,' ')
+   *endif
+
+   ! Saltar linha
+   *vwrite,
+   (' ')
+
+   !! 6.4.2.2   DADOS DO ARQUIVO                                                                  !!
+   ! Título da seção
+   *vwrite,
+   ('FILE')
+   ! Referência da literatura
+   *vwrite,libReference
+;   REFERENCE = %C
+   ! Identificação do modelo
+   *vwrite,modelID
+;   MODEL ID. = %C
+   ! Nome do arquivo
+   *vwrite,FileName(1)
+;   JOBNAME   = %C
+   ! Diretório do arquivo
+   *vwrite,currDir(1)
+;   DIRECTORY = %C
+   ! Data de término da análise
+   *vwrite,currYear,currMonth,currDay
+   (';   DATE      = ',F5.0,TL1,'/',F3.0,TL1,'/',F3.0,TL1,' ')
+   ! Hora do término da análise
+   !*vwrite,currHour,currMinute,currSecond
+   !(';   TIME      = ',A2,":",A2,":",A2)
+   *vwrite,currentClock
+   (';   TIME      = ',A8)
+   ! Tempo decorrido durante a análise
+   *vwrite,ElapsedTime
+   (';   ELAPSED   = ',F8.3,' min')
+
+   ! Saltar linhas
+   *vwrite,
+   (' ')
+   *vwrite,
+   (' ')
+
+   !! 6.4.2.3   GEOMETRIA DA VIGA                                                                 !!
+   ! Título da seção
+   *vwrite,
+   ('BEAM GEOMETRY')
+   ! Tipo de fabricação da seção original
+   *if,VIGA_psFab,EQ,1,THEN
+       *vwrite,
+       (';   PS fab. =   ROLLED')
+   *elseif,VIGA_psFab,EQ,2,THEN
+       (';   PS fab. =   WELDED')
+   *endif
+   ! Tipo de abertura
+   *vwrite,OpeningType
+   (';   Opening = ',A8)
+   ! Tipo de fabricação da peça alveolar
+   *if,VIGA_fab,EQ,0,THEN
+      *vwrite,
+      (';   Fabr.   = STANDARD')
+   *elseif,VIGA_fab,EQ,1,THEN
+      *vwrite,
+      (';   Fabr.   = MODIFIED')
+   *endif
+   ! Nome da viga
+   *vwrite,VIGA_name
+;   Name    = %C
+   *vwrite,VIGA_L
+   (';   L       = ',F8.4)
+   *vwrite,VIGA_n
+   (';   n       = ',F8.0,TL1,' ')
+   *vwrite,VIGA_bf
+   (';   bf      = ',F8.5)
+   *vwrite,VIGA_dg
+   (';   dg      = ',F8.5)
+   *vwrite,VIGA_dm
+   (';   dm      = ',F8.5)
+   *vwrite,VIGA_d0
+   (';   d0      = ',F8.5)
+   *vwrite,VIGA_sw
+   (';   sw      = ',F8.5)
+   *vwrite,VIGA_s0
+   (';   s0      = ',F8.5)
+   *vwrite,VIGA_se
+   (';   se      = ',F8.5)
+   *vwrite,VIGA_sb
+   (';   sb      = ',F8.5)
+   *vwrite,VIGA_theta
+   (';   theta   = ',F8.3)
+   *vwrite,VIGA_bos
+   (';   bos     = ',F8.4)
+   *vwrite,VIGA_x0
+   (';   x0      = ',F8.4)
+   *vwrite,VIGA_y0
+   (';   y0      = ',F8.4)
+   *vwrite,VIGA_z0
+   (';   z0      = ',F8.4)
+   *vwrite,VIGA_swi
+   (';   swi     = ',F8.4)
+   *vwrite,VIGA_swf
+   (';   swf     = ',F8.4)
+   *vwrite,SEC_Mesa_THK
+   (';   tf      = ',F8.5)
+   *vwrite,SEC_Alma1_THK
+   (';   tw      = ',F8.5)
+   *vwrite,SEC_Enrij_THK
+   (';   ts      = ',F8.5)
+   *vwrite,SEC_OpEnrij_THK
+   (';   tos     = ',F8.5)
+
+   ! Saltar linhas
+   *vwrite,
+   (' ')
+   *vwrite,
+   (' ')
+
+   !! 6.4.2.4   MATERIAIS                                                                         !!
+   ! Título da seção
+   *vwrite,
+   ('MATERIALS')
+   ! Fator global de redução do módulo de elasticidade
+   *vwrite,ERedFact
+   (';   E Red.     = ',F12.7)
+   ! Fator global de redução da tensão de escoamento
+   *vwrite,fyRedFact
+   (';   fy Red.    = ',F12.7)
+   ! Mesa superior
+   *vwrite,
+   (';   TOP FLANGE')
+   *vwrite,MAT_MesaSup_EX
+   (';      E       = ',E12.5)
+   *vwrite,MAT_MesaSup_FY
+   (';      fy      = ',E12.5)
+   *vwrite,MAT_MesaSup_POISSON
+   (';      Poisson = ',F12.5)
+   *vwrite,MAT_MesaSup_DENS
+   (';      dens    = ',F12.3)
+   *if,MAT_MesaSup_law,EQ,0,THEN
+      *vwrite,
+      (';      Type    =     BILINEAR')
+   *elseif,MAT_MesaSup_law,EQ,1,THEN
+      *vwrite,
+      (';      Type    =    HARDENING')
+      *vwrite,MAT_MesaSup_hard
+      (';      Hard.   = ',E12.5)
+   *elseif,MAT_MesaSup_law,EQ,2,AND,MAT_MesaSup_ptCount,GT,0,THEN
+      *vwrite,
+      (';      Type    =  MULTILINEAR')
+      *vwrite,MAT_MesaSup_ptCount
+      (';      Points  =          ',F4.0,TL1,' ')
+      *vwrite,
+      (';      •————————————————————————————————————————————————————————————•')
+      *vwrite,
+      (';      |              *** STRESS-STRAIN CURVE DATA ***              |')
+      *vwrite,
+      (';      •————————————————————————————————————————————————————————————•')
+      *vwrite,
+      (';      | Point  |        Stress  |         Strain  |      Tan. Mod. |')
+      ! Criar vetor de numeração dos pontos da curva
+      *del,PointNumArray
+      *dim,PointNumArray,ARRAY,MAT_MesaSup_ptCount
+      *vfill,PointNumArray,RAMP,1,1
+      ! Calcular módulo tangente de cada trecho
+      *del,MAT_MesaSup_TanModVec
+      *dim,MAT_MesaSup_TanModVec,ARRAY,MAT_MesaSup_ptCount
+      prevStress=0
+      prevStrain=0
+      *do,nthTM,1,MAT_MesaSup_ptCount
+         stress=MAT_MesaSup_sVec(nthTM)
+         strain=MAT_MesaSup_eVec(nthTM)
+         TanMod=(stress-prevStress)/(strain-prevStrain)
+         MAT_MesaSup_TanModVec(nthTM)=TanMod
+         prevStress=stress
+         prevStrain=strain
+      *enddo
+      ! Escrever tabela correspondente à curva tensão-deformação
+      *vwrite,PointNumArray(1),MAT_MesaSup_sVec(1),MAT_MesaSup_eVec(1),MAT_MesaSup_TanModVec(1)
+      (';      |   ',F4.0,TL1,'  | ',E13.5,'  |  ',E13.5,'  |  ',E13.5,' |')
+      *vwrite,
+      (';      •————————————————————————————————————————————————————————————•')
+   *endif
+   ! Mesa inferior
+   *vwrite,
+   (';   BOTTOM FLANGE')
+   *vwrite,MAT_MesaInf_EX
+   (';      E       = ',E12.5)
+   *vwrite,MAT_MesaInf_FY
+   (';      fy      = ',E12.5)
+   *vwrite,MAT_MesaInf_POISSON
+   (';      Poisson = ',F12.5)
+   *vwrite,MAT_MesaInf_DENS
+   (';      dens    = ',F12.3)
+   *if,MAT_MesaInf_law,EQ,0,THEN
+      *vwrite,
+      (';      Type    =     BILINEAR')
+   *elseif,MAT_MesaInf_law,EQ,1,THEN
+      *vwrite,
+      (';      Type    =    HARDENING')
+      *vwrite,MAT_MesaInf_hard
+      (';      Hard.   = ',E12.5)
+   *elseif,MAT_MesaInf_law,EQ,2,AND,MAT_MesaInf_ptCount,GT,0,THEN
+      *vwrite,
+      (';      Type    =  MULTILINEAR')
+      *vwrite,MAT_MesaInf_ptCount
+      (';      Points  =          ',F4.0,TL1,' ')
+      *vwrite,
+      (';      •————————————————————————————————————————————————————————————•')
+      *vwrite,
+      (';      |              *** STRESS-STRAIN CURVE DATA ***              |')
+      *vwrite,
+      (';      •————————————————————————————————————————————————————————————•')
+      *vwrite,
+      (';      | Point  |        Stress  |         Strain  |      Tan. Mod. |')
+      ! Criar vetor de numeração dos pontos da curva
+      *del,PointNumArray
+      *dim,PointNumArray,ARRAY,MAT_MesaInf_ptCount
+      *vfill,PointNumArray,RAMP,1,1
+      ! Calcular módulo tangente de cada trecho
+      *del,MAT_MesaInf_TanModVec
+      *dim,MAT_MesaInf_TanModVec,ARRAY,MAT_MesaInf_ptCount
+      prevStress=0
+      prevStrain=0
+      *do,nthTM,1,MAT_MesaInf_ptCount
+         stress=MAT_MesaInf_sVec(nthTM)
+         strain=MAT_MesaInf_eVec(nthTM)
+         TanMod=(stress-prevStress)/(strain-prevStrain)
+         MAT_MesaInf_TanModVec(nthTM)=TanMod
+         prevStress=stress
+         prevStrain=strain
+      *enddo
+      ! Escrever tabela correspondente à curva tensão-deformação
+      *vwrite,PointNumArray(1),MAT_MesaInf_sVec(1),MAT_MesaInf_eVec(1),MAT_MesaInf_TanModVec(1)
+      (';      |   ',F4.0,TL1,'  | ',E13.5,'  |  ',E13.5,'  |  ',E13.5,' |')
+      *vwrite,
+      (';      •————————————————————————————————————————————————————————————•')
+   *endif
+   ! Alma
+   *vwrite,
+   (';   WEB')
+   *vwrite,MAT_Alma_EX
+   (';      E       = ',E12.5)
+   *vwrite,MAT_Alma_FY
+   (';      fy      = ',E12.5)
+   *vwrite,MAT_Alma_POISSON
+   (';      Poisson = ',F12.5)
+   *vwrite,MAT_Alma_DENS
+   (';      dens    = ',F12.3)
+   *if,MAT_Alma_law,EQ,0,THEN
+      *vwrite,
+      (';      Type    =     BILINEAR')
+   *elseif,MAT_Alma_law,EQ,1,THEN
+      *vwrite,
+      (';      Type    =    HARDENING')
+      *vwrite,MAT_Alma_hard
+      (';      Hard.   = ',E12.5)
+   *elseif,MAT_Alma_law,EQ,2,AND,MAT_Alma_ptCount,GT,0,THEN
+      *vwrite,
+      (';      Type    =  MULTILINEAR')
+      *vwrite,MAT_Alma_ptCount
+      (';      Points  =          ',F4.0,TL1,' ')
+      *vwrite,
+      (';      •————————————————————————————————————————————————————————————•')
+      *vwrite,
+      (';      |              *** STRESS-STRAIN CURVE DATA ***              |')
+      *vwrite,
+      (';      •————————————————————————————————————————————————————————————•')
+      *vwrite,
+      (';      | Point  |        Stress  |         Strain  |      Tan. Mod. |')
+      ! Criar vetor de numeração dos pontos da curva
+      *del,PointNumArray
+      *dim,PointNumArray,ARRAY,MAT_Alma_ptCount
+      *vfill,PointNumArray,RAMP,1,1
+      ! Calcular módulo tangente de cada trecho
+      *del,MAT_Alma_TanModVec
+      *dim,MAT_Alma_TanModVec,ARRAY,MAT_Alma_ptCount
+      prevStress=0
+      prevStrain=0
+      *do,nthTM,1,MAT_Alma_ptCount
+         stress=MAT_Alma_sVec(nthTM)
+         strain=MAT_Alma_eVec(nthTM)
+         TanMod=(stress-prevStress)/(strain-prevStrain)
+         MAT_Alma_TanModVec(nthTM)=TanMod
+         prevStress=stress
+         prevStrain=strain
+      *enddo
+      ! Escrever tabela correspondente à curva tensão-deformação
+      *vwrite,PointNumArray(1),MAT_Alma_sVec(1),MAT_Alma_eVec(1),MAT_Alma_TanModVec(1)
+      (';      |   ',F4.0,TL1,'  | ',E13.5,'  |  ',E13.5,'  |  ',E13.5,' |')
+      *vwrite,
+      (';      •————————————————————————————————————————————————————————————•')
+   *endif
+   ! Enrijecedores de alma
+   *vwrite,
+   (';   WEB STIFFENERS')
+   *vwrite,MAT_Enrij_EX
+   (';      E       = ',E12.5)
+   *vwrite,MAT_Enrij_FY
+   (';      fy      = ',E12.5)
+   *vwrite,MAT_Enrij_POISSON
+   (';      Poisson = ',F12.5)
+   *vwrite,MAT_Enrij_DENS
+   (';      dens    = ',F12.3)
+   *if,MAT_Enrij_law,EQ,0,THEN
+      *vwrite,
+      (';      Type    =     BILINEAR')
+   *elseif,MAT_Enrij_law,EQ,1,THEN
+      *vwrite,
+      (';      Type    =    HARDENING')
+      *vwrite,MAT_Enrij_hard
+      (';      Hard.   = ',E12.5)
+   *elseif,MAT_Enrij_law,EQ,2,AND,MAT_Enrij_ptCount,GT,0,THEN
+      *vwrite,
+      (';      Type    =  MULTILINEAR')
+      *vwrite,MAT_Enrij_ptCount
+      (';      Points  =          ',F4.0,TL1,' ')
+      *vwrite,
+      (';      •————————————————————————————————————————————————————————————•')
+      *vwrite,
+      (';      |              *** STRESS-STRAIN CURVE DATA ***              |')
+      *vwrite,
+      (';      •————————————————————————————————————————————————————————————•')
+      *vwrite,
+      (';      | Point  |        Stress  |         Strain  |      Tan. Mod. |')
+      ! Criar vetor de numeração dos pontos da curva
+      *del,PointNumArray
+      *dim,PointNumArray,ARRAY,MAT_Enrij_ptCount
+      *vfill,PointNumArray,RAMP,1,1
+      ! Calcular módulo tangente de cada trecho
+      *del,MAT_Enrij_TanModVec
+      *dim,MAT_Enrij_TanModVec,ARRAY,MAT_Enrij_ptCount
+      prevStress=0
+      prevStrain=0
+      *do,nthTM,1,MAT_Enrij_ptCount
+         stress=MAT_Enrij_sVec(nthTM)
+         strain=MAT_Enrij_eVec(nthTM)
+         TanMod=(stress-prevStress)/(strain-prevStrain)
+         MAT_Enrij_TanModVec(nthTM)=TanMod
+         prevStress=stress
+         prevStrain=strain
+      *enddo
+      ! Escrever tabela correspondente à curva tensão-deformação
+      *vwrite,PointNumArray(1),MAT_Enrij_sVec(1),MAT_Enrij_eVec(1),MAT_Enrij_TanModVec(1)
+      (';      |   ',F4.0,TL1,'  | ',E13.5,'  |  ',E13.5,'  |  ',E13.5,' |')
+      *vwrite,
+      (';      •————————————————————————————————————————————————————————————•')
+   *endif
+
+   ! Saltar linhas
+   *vwrite,
+   (' ')
+   *vwrite,
+   (' ')
+
+   !! 6.4.2.5   CARGAS APLICADAS                                                                  !!
+   ! Título da seção
+   *vwrite,
+   ('APPLIED LOADS')
+   ! Carga para cálculo das imperfeições geométricas
+   *vwrite,GeomImperfLoad
+   (';   Geom. Imp.  = ',E12.5)
+   ! Flexão de quatro pontos
+   *vwrite,
+   (';   FOUR POINT BENDING')
+   *if,LoadType1,EQ,1,THEN
+      *vwrite,
+      (';      Status   = ON')
+      *vwrite,Total4PointLoad
+      (';      Value    = ',E12.5)
+      *vwrite,LoadDistance
+      (';      Distance = ',F9.5)
+   *else
+      *vwrite,
+      (';      Status   = OFF')
+   *endif
+   ! Carga uniformemente distribuída
+   *vwrite,
+   (';   UNIFORM LOAD')
+   *if,LoadType2,EQ,1,THEN
+      *vwrite,
+      (';      Status   = ON')
+      *vwrite,DistributedLoad
+      (';      Value    = ',E12.5)
+   *else
+      *vwrite,
+      (';      Status   = OFF')
+   *endif
+   ! Carga concentrada
+   *vwrite,
+   (';   POINT LOAD')
+   *if,LoadType3,EQ,1,THEN
+      *vwrite,
+      (';      Status   = ON')
+      *vwrite,PointLoadValue
+      (';      Value    = ',E12.5)
+      *vwrite,PointLoadPos
+      (';      Position = ',F9.5)
+   *else
+      *vwrite,
+      (';      Status   = OFF')
+   *endif
+   ! Compressão axial
+   *vwrite,
+   (';   AXIAL COMPRESSION')
+   *if,LoadType4,EQ,1,THEN
+      *vwrite,
+      (';      Status   = ON')
+      *vwrite,CompressiveForce
+      (';      Value    = ',E12.5)
+   *else
+      *vwrite,
+      (';      Status   = OFF')
+   *endif
+   ! Momento fletor nas extremidades
+   *vwrite,
+   (';   BENDING MOMENT')
+   *if,LoadType5,EQ,1,THEN
+      *vwrite,
+      (';      Status   = ON')
+      *vwrite,BendingMoment
+      (';      Value    = ',E12.5)
+   *else
+      *vwrite,
+      (';      Status   = OFF')
+   *endif
+
+   ! Saltar linhas
+   *vwrite,
+   (' ')
+   *vwrite,
+   (' ')
+
+   !! 6.4.2.6   APOIOS DA BARRA                                                                   !!
+   ! Título da seção
+   *vwrite,
+   ('BEAM SUPPORTS')
+
+   ! Apoio esquerdo
+   *vwrite,
+   (';   LEFT SUPPORT')
+   ! Empenamento e acoplamentos
+   *if,LS_WARP,EQ,0,THEN
+      *vwrite,
+      (';      WARP = OFF')
+   *elseif,LS_WARP,EQ,1,THEN
+      *vwrite,
+      (';      WARP = ON')
+   *elseif,LS_WARP,EQ,-1,THEN
+      *vwrite,
+      (';      WARP = NO CONSTRAINTS')
+   *endif
+   ! Deslocamento em X
+   *if,LS_UX,EQ,0,THEN
+      *vwrite,
+      (';      UX   = OFF')
+   *elseif,LS_UX,EQ,1,THEN
+      *vwrite,
+      (';      UX   = ON (mid)')
+   *elseif,LS_UX,EQ,2,THEN
+      *vwrite,
+      (';      UX   = ON (bot)')
+   *elseif,LS_UX,EQ,3,THEN
+      *vwrite,
+      (';      UX   = ON (top)')
+   *endif
+   ! Deslocamento em Y
+   *if,LS_UY,EQ,0,THEN
+      *vwrite,
+      (';      UY   = OFF')
+   *elseif,LS_UY,EQ,1,THEN
+      *vwrite,
+      (';      UY   = ON (mid)')
+   *elseif,LS_UY,EQ,2,THEN
+      *vwrite,
+      (';      UY   = ON (bot)')
+   *elseif,LS_UY,EQ,3,THEN
+      *vwrite,
+      (';      UY   = ON (top)')
+   *endif
+   ! Deslocamento em Z
+   *if,LS_UZ,EQ,0,THEN
+      *vwrite,
+      (';      UZ   = OFF')
+   *elseif,LS_UZ,EQ,1,THEN
+      *vwrite,
+      (';      UZ   = ON (web)')
+   *elseif,LS_UZ,EQ,2,THEN
+      *vwrite,
+      (';      UZ   = ON (flange)')
+   *endif
+   ! Rotação em torno de X
+   *if,LS_ROTX,EQ,0,THEN
+      *vwrite,
+      (';      ROTX = OFF')
+   *elseif,LS_ROTX,EQ,1,THEN
+      *vwrite,
+      (';      ROTX = ON')
+   *endif
+   ! Rotação em torno de Y
+   *if,LS_ROTY,EQ,0,THEN
+      *vwrite,
+      (';      ROTY = OFF')
+   *elseif,LS_ROTY,EQ,1,THEN
+      *vwrite,
+      (';      ROTY = ON')
+   *endif
+   ! Rotação em torno de Z
+   *if,LS_ROTZ,EQ,0,THEN
+      *vwrite,
+      (';      ROTZ = OFF')
+   *elseif,LS_ROTZ,EQ,1,THEN
+      *vwrite,
+      (';      ROTZ = ON')
+   *endif
+
+   ! Apoio direito
+   *vwrite,
+   (';   RIGHT SUPPORT')
+   ! Empenamento e acoplamentos
+   *if,RS_WARP,EQ,0,THEN
+      *vwrite,
+      (';      WARP = OFF')
+   *elseif,RS_WARP,EQ,1,THEN
+      *vwrite,
+      (';      WARP = ON')
+   *elseif,RS_WARP,EQ,-1,THEN
+      *vwrite,
+      (';      WARP = NO CONSTRAINTS')
+   *endif
+   ! Deslocamento em X
+   *if,RS_UX,EQ,0,THEN
+      *vwrite,
+      (';      UX   = OFF')
+   *elseif,RS_UX,EQ,1,THEN
+      *vwrite,
+      (';      UX   = ON (mid)')
+   *elseif,RS_UX,EQ,2,THEN
+      *vwrite,
+      (';      UX   = ON (bot)')
+   *elseif,RS_UX,EQ,3,THEN
+      *vwrite,
+      (';      UX   = ON (top)')
+   *endif
+   ! Deslocamento em Y
+   *if,RS_UY,EQ,0,THEN
+      *vwrite,
+      (';      UY   = OFF')
+   *elseif,RS_UY,EQ,1,THEN
+      *vwrite,
+      (';      UY   = ON (mid)')
+   *elseif,RS_UY,EQ,2,THEN
+      *vwrite,
+      (';      UY   = ON (bot)')
+   *elseif,RS_UY,EQ,3,THEN
+      *vwrite,
+      (';      UY   = ON (top)')
+   *endif
+   ! Deslocamento em Z
+   *if,RS_UZ,EQ,0,THEN
+      *vwrite,
+      (';      UZ   = OFF')
+   *elseif,RS_UZ,EQ,1,THEN
+      *vwrite,
+      (';      UZ   = ON (web)')
+   *elseif,RS_UZ,EQ,2,THEN
+      *vwrite,
+      (';      UZ   = ON (flange)')
+   *endif
+   ! Rotação em torno de X
+   *if,RS_ROTX,EQ,0,THEN
+      *vwrite,
+      (';      ROTX = OFF')
+   *elseif,RS_ROTX,EQ,1,THEN
+      *vwrite,
+      (';      ROTX = ON')
+   *endif
+   ! Rotação em torno de Y
+   *if,RS_ROTY,EQ,0,THEN
+      *vwrite,
+      (';      ROTY = OFF')
+   *elseif,RS_ROTY,EQ,1,THEN
+      *vwrite,
+      (';      ROTY = ON')
+   *endif
+   ! Rotação em torno de Z
+   *if,RS_ROTZ,EQ,0,THEN
+      *vwrite,
+      (';      ROTZ = OFF')
+   *elseif,RS_ROTZ,EQ,1,THEN
+      *vwrite,
+      (';      ROTZ = ON')
+   *endif
+
+   ! Saltar linhas
+   *vwrite,
+   (' ')
+   *vwrite,
+   (' ')
+
+   !! 6.4.2.7   IMPERFEIÇÕES GEOMÉTRICAS INICIAIS                                                 !!
+   ! Título da seção
+   *vwrite,
+   ('GEOMETRIC IMPERFECTIONS')
+   *if,GI_RedFact,NE,0,THEN
+      *vwrite,
+      (';   Status         =  ON')
+      ! Conjunto de imperfeições do Eurocode (EC3)
+      *if,GI_EC3,EQ,1,THEN
+          *vwrite,
+          (';   Eurocode (EC3) =  ON')
+      *else
+          *vwrite,
+          (';   Eurocode (EC3) = OFF')
+      *endif
+      ! Conjunto de imperfeições padrão
+      *if,GeomImperf_STD,EQ,1,THEN
+         *vwrite,
+          (';   Standard (STD) =  ON')
+       *else
+         *vwrite,
+          (';   Standard (STD) = OFF')
+       *endif
+      ! Fator de redução global
+      *vwrite,GI_RedFact
+      (';   Red. factor    = ',F9.5)
+      ! Flexão em torno do eixo de maior inércia
+      *vwrite,
+      (';   STRONG AXIS BENDING')
+      *if,GeomImperf1,NE,0,THEN
+         *vwrite,
+         (';      Status      = ON')
+         *if,GI1_forced,EQ,0,THEN
+            *vwrite,
+            (';      Type        = RELATIVE VALUE')
+            *vwrite,GI1_rel
+            (';      Value       = ',E12.5)
+         *elseif,GI1_forced,EQ,1,THEN
+            *vwrite,
+            (';      Type        = ABSOLUTE VALUE')
+            *vwrite,GI1_dir
+            (';      Value       = ',E12.5)
+         *else
+            *vwrite,
+            (';      Type        = ***INVALID***')
+         *endif
+         *vwrite,UpGeomFactor1
+         (';      Factor      = ',E12.5)
+         *vwrite,GeomImperf1
+         (';      Applied     = ',E12.5)
+      *else
+         *vwrite,
+         (';      Status      = OFF')
+      *endif
+      ! Flexão em torno do eixo de menor inércia
+      *vwrite,
+      (';   WEAK AXIS BENDING')
+      *if,GeomImperf2,NE,0,THEN
+         *vwrite,
+         (';      Status      = ON')
+         *if,GI2_forced,EQ,0,THEN
+            *vwrite,
+            (';      Type        = RELATIVE VALUE')
+            *vwrite,GI2_rel
+            (';      Value       = ',E12.5)
+         *elseif,GI2_forced,EQ,1,THEN
+            *vwrite,
+            (';      Type        = ABSOLUTE VALUE')
+            *vwrite,GI2_dir
+            (';      Value       = ',E12.5)
+         *else
+            *vwrite,
+            (';      Type        = ***INVALID***')
+         *endif
+         *vwrite,UpGeomFactor2
+         (';      Factor      = ',E12.5)
+         *vwrite,GeomImperf2
+         (';      Applied     = ',E12.5)
+      *else
+         *vwrite,
+         (';      Status      = OFF')
+      *endif
+      ! Flexão da alma
+      *vwrite,
+      (';   WEB POST BENDING')
+      *if,GeomImperf3,NE,0,THEN
+         *vwrite,
+         (';      Status      = ON')
+         *if,FlangeRot,EQ,1,THEN
+            *vwrite,
+            (';      Fl. Rot.    = ON')
+         *else
+            *vwrite,
+            (';      Fl. Rot.    = OFF')
+         *endif
+         *if,GI3_forced,EQ,0,THEN
+            *vwrite,
+            (';      Type        = RELATIVE VALUE')
+            *vwrite,GI3_rel
+            (';      Value       = ',E12.5)
+         *elseif,GI3_forced,EQ,1,THEN
+            *vwrite,
+            (';      Type        = ABSOLUTE VALUE')
+            *vwrite,GI3_dir
+            (';      Value       = ',E12.5)
+         *else
+            *vwrite,
+            (';      Type        = ***INVALID***')
+         *endif
+         *vwrite,UpGeomFactor3
+         (';      Factor      = ',E12.5)
+         *vwrite,GeomImperf3
+         (';      Applied     = ',E12.5)
+      *else
+         *vwrite,
+         (';      Status      = OFF')
+      *endif
+      ! Desalinhamento das metades superior e inferior do montante da alma
+      *vwrite,
+      (';   WEB POST MISALIGNMENT')
+      *if,GeomImperf4,NE,0,THEN
+         *vwrite,
+         (';      Status      = ON')
+         *if,GI4_forced,EQ,0,THEN
+            *vwrite,
+            (';      Type        = RELATIVE VALUE')
+            *vwrite,GI4_rel
+            (';      Value       = ',E12.5)
+         *elseif,GI4_forced,EQ,1,THEN
+            *vwrite,
+            (';      Type        = ABSOLUTE VALUE')
+            *vwrite,GI4_dir
+            (';      Value       = ',E12.5)
+         *else
+            *vwrite,
+            (';      Type        = ***INVALID***')
+         *endif
+         *vwrite,GeomImperf4
+         (';      Applied     = ',E12.5)
+      *else
+         *vwrite,
+         (';      Status      = OFF')
+      *endif
+      ! Modo de flambagem global
+      *vwrite,
+      (';   BUCKLING MODE')
+      *if,GeomImperf5,NE,0,THEN
+         *vwrite,
+         (';      Status      = ON')
+         *if,GI5_forced,EQ,0,THEN
+            *vwrite,
+            (';      Type        = RELATIVE VALUE')
+            *vwrite,
+            (';      Reference   = BEAM DEPTH')
+            *if,GI5_nodes,EQ,0,THEN
+               *vwrite,
+               (';      Valid Nodes = ALL BEAM NODES')
+            *elseif,GI5_nodes,EQ,1,THEN
+               *vwrite,
+               (';      Valid Nodes = WEB ONLY NODES')
+            *elseif,GI5_nodes,EQ,2,THEN
+               *vwrite,
+               (';      Valid Nodes = WEB & INTERFACE NODES')
+            *elseif,GI5_nodes,EQ,3,THEN
+               *vwrite,
+               (';      Valid Nodes = WEB-FLANGE INTERFACE')
+            *elseif,GI5_nodes,EQ,4,THEN
+               *vwrite,
+               (';      Valid Nodes = FLANGE NODES')
+            *else
+               *vwrite,
+               (';      Valid Nodes = ***INVALID***')
+            *endif
+            *vwrite,GI5_mode
+            (';      Mode number = ',F4.0,TL1,' ')
+            *vwrite,GI5_rel
+            (';      Value       = ',E12.5)
+         *elseif,GI5_forced,EQ,2,THEN
+            *vwrite,
+            (';      Type        = RELATIVE VALUE')
+            *vwrite,
+            (';      Reference   = BEAM LENGTH')
+            *if,GI5_nodes,EQ,0,THEN
+               *vwrite,
+               (';      Valid Nodes = ALL BEAM NODES')
+            *elseif,GI5_nodes,EQ,1,THEN
+               *vwrite,
+               (';      Valid Nodes = WEB ONLY NODES')
+            *elseif,GI5_nodes,EQ,2,THEN
+               *vwrite,
+               (';      Valid Nodes = WEB & INTERFACE NODES')
+            *elseif,GI5_nodes,EQ,3,THEN
+               *vwrite,
+               (';      Valid Nodes = WEB-FLANGE INTERFACE')
+            *elseif,GI5_nodes,EQ,4,THEN
+               *vwrite,
+               (';      Valid Nodes = FLANGE NODES')
+            *else
+               *vwrite,
+               (';      Valid Nodes = ***INVALID***')
+            *endif
+            *vwrite,GI5_mode
+            (';      Mode number = ',F4.0,TL1,' ')
+            *vwrite,GI5_rel
+            (';      Value       = ',E12.5)
+         *elseif,GI5_forced,EQ,1,THEN
+            *vwrite,
+            (';      Type        = ABSOLUTE VALUE')
+            *if,GI5_nodes,EQ,0,THEN
+               *vwrite,
+               (';      Valid Nodes = ALL BEAM NODES')
+            *elseif,GI5_nodes,EQ,1,THEN
+               *vwrite,
+               (';      Valid Nodes = WEB ONLY NODES')
+            *elseif,GI5_nodes,EQ,2,THEN
+               *vwrite,
+               (';      Valid Nodes = WEB & INTERFACE NODES')
+            *elseif,GI5_nodes,EQ,3,THEN
+               *vwrite,
+               (';      Valid Nodes = WEB-FLANGE INTERFACE')
+            *elseif,GI5_nodes,EQ,4,THEN
+               *vwrite,
+               (';      Valid Nodes = FLANGE NODES')
+            *else
+               *vwrite,
+               (';      Valid Nodes = ***INVALID***')
+            *endif
+            *vwrite,GI5_mode
+            (';      Mode number = ',F4.0,TL1,' ')
+            *vwrite,GI5_dir
+            (';      Value       = ',E12.5)
+         *else
+            *vwrite,
+            (';      Type        = ***INVALID***')
+         *endif
+         *vwrite,UpGeomFactor5
+         (';      Factor      = ',E12.5)
+         *vwrite,GeomImperf5
+         (';      Applied     = ',E12.5)
+      *else
+         *vwrite,
+         (';      Status      = OFF')
+      *endif
+      ! Modo de flambagem local da alma
+      *vwrite,
+      (';   LOCAL BUCK. MODE')
+      *if,GeomImperf6,NE,0,THEN
+         *vwrite,
+         (';      Status      = ON')
+         *if,GI6_forced,EQ,0,THEN
+            *vwrite,
+            (';      Type        = RELATIVE VALUE')
+            *vwrite,GI6_mode
+            (';      Mode number = ',F4.0,TL1,' ')
+            *vwrite,GI6_rel
+            (';      Value       = ',E12.5)
+         *elseif,GI6_forced,EQ,1,THEN
+            *vwrite,
+            (';      Type        = ABSOLUTE VALUE')
+            *vwrite,GI6_mode
+            (';      Mode number = ',F4.0,TL1,' ')
+            *vwrite,GI6_dir
+            (';      Value       = ',E12.5)
+         *else
+            *vwrite,
+            (';      Type        = ***INVALID***')
+         *endif
+         *vwrite,UpGeomFactor6
+         (';      Factor      = ',E12.5)
+         *vwrite,GeomImperf6
+         (';      Applied     = ',E12.5)
+      *else
+         *vwrite,
+         (';      Status      = OFF')
+      *endif
+   *else
+      *vwrite,
+      (';   Status         = OFF')
+   *endif
+
+   ! Saltar linhas
+   *vwrite,
+   (' ')
+   *vwrite,
+   (' ')
+
+   !! 6.4.2.8   ENRIJECEDORES DE ALMA                                                             !!
+   ! Título da seção
+   *vwrite,
+   ('WEB STIFFENERS')
+   *if,WebStiffStatus,EQ,1,THEN
+      *vwrite,
+      (';   Status        = ON')
+      ! Nos apoios
+      *vwrite,
+      (';   AT SUPPORTS')
+      *if,WebStiff_LS,EQ,0,AND,WebStiff_RS,EQ,0,THEN
+         *vwrite,
+         (';      Status     = OFF')
+      *else
+         *vwrite,
+         (';      Status     = ON')
+         *if,WebStiff_LS,EQ,1,THEN
+            *vwrite,
+            (';      Left Sup.  = ON')
+         *else
+            *vwrite,
+            (';      Left Sup.  = OFF')
+         *endif
+         *if,WebStiff_RS,EQ,1,THEN
+            *vwrite,
+            (';      Right Sup. = ON')
+         *else
+            *vwrite,
+            (';      Right Sup. = OFF')
+         *endif
+      *endif
+      ! Not pontos de introdução de carga da flexão de 4 pontos
+      *vwrite,
+      (';   AT FOUR POINT BENDING')
+      *if,WebStiff_4P,EQ,0,THEN
+         *vwrite,
+         (';      Status     = OFF')
+      *else
+         *vwrite,
+         (';      Status     = ON')
+      *endif
+      ! No ponto de introdução de carga concentrada
+      *vwrite,
+      (';   AT POINT LOAD')
+      *if,WebStiff_PL,EQ,0,THEN
+         *vwrite,
+         (';      Status     = OFF')
+      *else
+         *vwrite,
+         (';      Status     = ON')
+      *endif
+      ! Posições arbitrárias
+      *vwrite,
+      (';   ARBITRARY POSITIONS')
+      *if,WebStiff_X,EQ,0,OR,WebStiff_XQuant,EQ,0,THEN
+         *vwrite,
+         (';      Status     = OFF')
+      *else
+         *vwrite,
+         (';      Status     = ON')
+         *vwrite,WebStiff_XQuant
+         (';      Quantity   = ',F5.0,TL1,' ')
+         *vwrite,
+         (';      Positions  = ',\b)
+         entryCounter=0
+         *do,nthStiff,1,WebStiff_XQuant
+            nthPos=WebStiff_XPos(nthStiff)
+            entryCounter=entryCounter+1
+            *if,entryCounter,GE,5,THEN
+               *vwrite,nthPos
+               (F10.5,' ; ')
+               entryCounter=0
+               *vwrite,
+               (';                   ',\b)
+            *else
+               *vwrite,nthPos
+               (F10.5,' ; ',\b)
+            *endif
+         *enddo
+      *endif
+   *else
+      *vwrite,
+      (';   Status        = OFF')
+   *endif
+
+   ! Saltar linhas
+   *vwrite,
+   (' ')
+   *vwrite,
+   (' ')
+
+   !! 6.4.2.9   APOIOS LATERAIS                                                                   !!
+   ! Título da seção
+   *vwrite,
+   ('LATERAL SUPPORTS')
+   *if,LatSupStatus,EQ,1,THEN
+      *vwrite,
+      (';   Status        = ON')
+      ! Nos apoios
+      *vwrite,
+      (';   AT SUPPORTS')
+      *if,LatSup_LS,EQ,0,AND,LatSup_RS,EQ,0,THEN
+         *vwrite,
+         (';      Status     = OFF')
+      *else
+         *vwrite,
+         (';      Status     = ON')
+         *if,LatSup_LS,EQ,1,THEN
+            *vwrite,
+            (';      Left Sup.  = ON')
+         *else
+            *vwrite,
+            (';      Left Sup.  = OFF')
+         *endif
+         *if,LatSup_RS,EQ,1,THEN
+            *vwrite,
+            (';      Right Sup. = ON')
+         *else
+            *vwrite,
+            (';      Right Sup. = OFF')
+         *endif
+      *endif
+      ! Nos pontos de introdução de carga da flexão de 4 pontos
+      *vwrite,
+      (';   AT FOUR POINT BENDING')
+      *if,LatSup_4P,EQ,0,THEN
+         *vwrite,
+         (';      Status     = OFF')
+      *else
+         *vwrite,
+         (';      Status     = ON')
+      *endif
+      ! No ponto de introdução da carga concentrada
+      *vwrite,
+      (';   AT POINT LOAD')
+      *if,LatSup_PL,EQ,0,THEN
+         *vwrite,
+         (';      Status     = OFF')
+      *else
+         *vwrite,
+         (';      Status     = ON')
+      *endif
+      ! Posições arbitrárias
+      *vwrite,
+      (';   ARBITRARY POSITIONS')
+      *if,LatSup_X,EQ,0,OR,LatSup_XQuant,EQ,0,THEN
+         *vwrite,
+         (';      Status     = OFF')
+      *else
+         *vwrite,
+         (';      Status     = ON')
+         *vwrite,LatSup_XQuant
+         (';      Quantity   = ',F5.0,TL1,' ')
+         *vwrite,
+         (';      Positions  = ',\b)
+         entryCounter=0
+         *do,nthSup,1,LatSup_XQuant
+            nthPos=LatSup_XPos(nthSup)
+            entryCounter=entryCounter+1
+            *if,entryCounter,GE,5,THEN
+               *vwrite,nthPos
+               (F10.5,' ; ')
+               entryCounter=0
+               *vwrite,
+               (';                   ',\b)
+            *else
+               *vwrite,nthPos
+               (F10.5,' ; ',\b)
+            *endif
+         *enddo
+      *endif
+   *else
+      *vwrite,
+      (';   Status        = OFF')
+   *endif
+
+   ! Saltar linhas
+   *vwrite,
+   (' ')
+   *vwrite,
+   (' ')
+
+   !! 6.4.2.10  TENSÕES RESIDUAIS                                                                 !!
+   ! Título da seção
+   *vwrite,
+   ('RESIDUAL STRESSES')
+   *if,IncludeResidualStresses,NE,0,THEN
+      *vwrite,
+      (';   Status     = ON')
+      *if,IncludeResidualStresses,EQ,1,THEN
+         ! Padrão de Sonck (medição no centro das aberturas)
+         *vwrite,
+         (';   Pattern    = SONCK TS')
+      *elseif,IncludeResidualStresses,EQ,2,THEN
+         ! Padrão de Sonck (medição no centro do montante da alma)
+         *vwrite,
+         (';   Pattern    = SONCK WP')
+      *elseif,IncludeResidualStresses,EQ,3,THEN
+         ! Padrão de Sonck modificado (variável em função da posição ao longo da barra)
+         *vwrite,
+         (';   Pattern    = SONCK MOD')
+      *elseif,IncludeResidualStresses,EQ,4,THEN
+         ! Padrão de Vieira
+         *vwrite,
+         (';   Pattern    = VIEIRA')
+      *endif
+      ! Número de Load Steps da análise de introdução de tensões residuais
+      *vwrite,resLoadSteps
+      (';   Load Steps = ',F6.0,TL1,' ')
+   *else
+      *vwrite,
+      (';   Status     = OFF')
+   *endif
+
+   ! Saltar linhas
+   *vwrite,
+   (' ')
+   *vwrite,
+   (' ')
+
+   !! 6.4.2.11  MODELO DE ELEMENTOS FINITOS                                                       !!
+   ! Título da seção
+   *vwrite,
+   ('FINITE ELEMENT ANALYSIS')
+   ! Dados da malha
+   *vwrite,
+   (';   MESH DATA')
+   ! Dimensão mínima dos elementos
+   *vwrite,MinESize
+   (';      Min. Elem. Size = ',F9.5)
+   ! Dimensão dos elementos declarada diretamente
+   *if,ESizeOverride,EQ,0,THEN
+      *vwrite,
+      (';      Forced Size     =       OFF')
+   *elseif,ESizeOverride,EQ,1,THEN
+      *vwrite,
+      (';      Forced Size     =        ON')
+   *endif
+   ! Dimensão da malha
+   *get,PType,PARM,FineMesh,TYPE
+   *if,PType,EQ,0,AND,FineMesh,EQ,1,THEN
+      ! Malha fina
+      *vwrite,
+      (';      Mesh Size       =      FINE')
+   *else
+      ! Malha grossa
+      *vwrite,
+      (';      Mesh Size       =    COARSE')
+   *endif
+   ! Dimensão adotada para os elementos
+   *vwrite,ElementSize
+   (';      Element Size    = ',F9.5)
+   ! Quantidade de elementos do modelo
+   *vwrite,TotalElementCount
+   (';      Element Count   = ',F10.0,TL1,' ')
+   ! Opções de solução
+   *vwrite,
+   (';   SOLUTION DATA')
+   ! Número de load steps
+   *vwrite,LoadStepCount+1
+   (';      Load Step Count = ',F6.0,TL1,' ')
+   ! Número de substeps
+   *vwrite,SubstepCount
+   (';      Substep Count   = ',F6.0,TL1,' ')
+   ! Teoria de grandes deslocamentos
+   *if,LargeDisp,EQ,1,THEN
+      *vwrite,
+      (';      Large disp.     =    ON')
+   *else
+      *vwrite,
+      (';      Large disp.     =   OFF')
+   *endif
+   ! Método de solução e controle da solução
+   *if,ArcLenStatus,EQ,1,THEN
+      *vwrite,
+      (';      Solution method = ARC-LENGTH')
+      *if,ArcLenTerm,EQ,0,THEN
+         *vwrite,
+         (';      AL Termination  = DO NOT TERMINATE')
+      *elseif,ArcLenTerm,EQ,1,THEN
+         *vwrite,
+         (';      AL Termination  = FIRST LIMIT POINT')
+      *elseif,ArcLenTerm,EQ,2,THEN
+         *vwrite,
+         (';      AL Termination  = CONTROL NODAL DISPLACEMENT')
+         *vwrite,ALDOFLimCut
+         (';      Max. DOF Factor = ',F13.8)
+         *vwrite,MaxALDisplacement
+         (';      Limit DOF Disp. = ',E13.5)
+      *endif
+      *vwrite,MaxArcMult
+      (';      Max. Arc. Mult. = ',E13.5)
+      *vwrite,MinArcMult
+      (';      Min. Arc. Mult. = ',E13.5)
+   *else
+      *vwrite,
+      (';      Solution method = NEWTON-RAPHSON')
+   *endif
+   ! Tipo de integração do elemento
+   *if,FullIntegration,EQ,1,THEN
+      *vwrite,
+      (';      El. Integration =          FULL')
+   *else
+      *vwrite,
+      (';      El. Integration =       REDUCED')
+   *endif
+   ! Outras opções
+   *vwrite,
+   (';   OTHER')
+   *if,hiRes,EQ,1,THEN
+      *vwrite,
+      (';      Img. resolution = HIGH')
+   *else
+      *vwrite,
+      (';      Img. resolution =  LOW')
+   *endif
+
+   ! Saltar linhas
+   *vwrite,
+   (' ')
+   *vwrite,
+   (' ')
+
+*cfclos
+! Reverter para diretório principal
+/cwd,'%currDir(1)%'
+
+

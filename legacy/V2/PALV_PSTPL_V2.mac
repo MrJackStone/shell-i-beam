@@ -1,0 +1,41 @@
+
+!! 6.3.3   NÓS DE INTRODUÇÃO DA CARGA CONCENTRADA                                                 !!
+!!                                                                                                !!
+ALLSEL
+*if,LoadType3,GE,1,THEN
+
+   !! 6.3.3.1   DEFINIR VARIÁVEIS                                                                 !!
+   ! Solução nodal no nó de aplicação de carga (deslocamento vertical)
+   NSOL,4,FNode3,U,Y,DISP_Y3
+
+   !! 6.3.3.2   DEFINIR PARÂMETROS                                                                !!
+   ! Fator de carga
+   *vlen,LastSubstep,1
+   *del,LoadFactors
+   *dim,LoadFactors,ARRAY,LastSubstep
+   VGET,LoadFactors(1),1
+   ! Deslocamento em Y do nó
+   *vlen,LastSubstep,1
+   *del,FNode3_YDisp
+   *dim,FNode3_YDisp,ARRAY,LastSubstep
+   VGET,FNode3_YDisp(1),4
+   *vlen
+
+   !! 6.3.3.3   CAPTURAR IMAGENS DOS GRÁFICOS                                                     !!
+   ! Variável em x: deslocamento do nó
+   XVAR,4
+   ! Definir intervalo do eixo X
+   *vscfun,GraphXMin,MIN,FNode3_YDisp
+   *vscfun,GraphXMax,MAX,FNode3_YDisp
+   /xrange,GraphXMin,GraphXMax
+   ! Definir intervalo do eixo Y
+   *vscfun,GraphYMin,MIN,LoadFactors
+   *vscfun,GraphYMax,MAX,LoadFactors
+   /yrange,GraphYMin,GraphYMax
+   ! Variável em Y: fator de carga
+   /show
+   PLVAR,1
+   PALV_TAKEPIC,'(U3)'
+
+*endif
+

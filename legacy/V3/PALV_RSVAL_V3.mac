@@ -1,0 +1,54 @@
+! Determinar padrão da distribuição de tensões residuais adotada
+*if,IncludeResidualStresses,GE,1,AND,IncludeResidualStresses,LE,3,THEN
+   ! Distribuições de Sonck (012)
+   dbRatio=VIGA_dm/VIGA_bfs
+   *if,VIGA_fab,EQ,0,THEN
+      ! Para vigas fabricadas do modo convencional
+      *if,dbRatio,GT,1.2,THEN
+         ! Vigas altas
+         sExtWeb=-100e6!-30e6-(0.3)*MAT_MesaSup_fy       !
+         sMidWeb=50e6!-20e6+(0.3)*MAT_MesaSup_fy            !
+         sExtOp=sExtWeb
+         sMidOp=sMidWeb
+      *else
+         ! Vigas baixas
+         sExtWeb=-150e6!-30e6-(0.5)*MAT_MesaSup_fy              !
+         sMidWeb=100e6!-20e6+(0.5)*MAT_MesaSup_fy              !
+         sExtOp=sExtWeb
+         sMidOp=sMidWeb
+      *endif
+   *else
+      ! Para vigas fabricadas do modo não-convencional
+      *if,IncludeResidualStresses,EQ,1,THEN
+         ! Distribuição TS
+         sExtWeb=-150e6!-80e6-(0.3)*MAT_MesaSup_fy         !
+         sMidWeb=0!0                                    !
+         sExtOp=sExtWeb
+         sMidOp=sMidWeb
+      *elseif,IncludeResidualStresses,EQ,2,THEN
+         ! Distribuição WP
+         sExtWeb=-100e6!-30e6-(0.3)*MAT_MesaSup_fy           !
+         sMidWeb=50e6!-20e6+(0.3)*MAT_MesaSup_fy             !
+         sExtOp=sExtWeb
+         sMidOp=sMidWeb
+      *elseif,IncludeResidualStresses,EQ,3,THEN
+         ! Distribuição mesclada
+         sExtWeb=-100e6!-30e6-(0.3)*MAT_MesaSup_fy                !
+         sMidWeb=50e6!-20e6+(0.3)*MAT_MesaSup_fy                  !
+         sExtOp=-150e6!-80e6-(0.3)*MAT_MesaSup_fy                    !
+         sMidOp=0!0                                             !
+      *endif
+   *endif
+   sWeb=0
+
+*elseif,IncludeResidualStresses,EQ,4,THEN
+   ! Distribuição de Vieira (040)
+   sFlange=((225/4)*(SEC_AlmaSup_THK*(VIGA_dm-SEC_MesaSup_THK)/(SEC_MesaSup_THK*VIGA_bfs))-(25/3))*1e6
+   sWeb=(-1)*((100/9)*(SEC_AlmaSup_THK*(VIGA_dm-SEC_MesaSup_THK)/(SEC_MesaSup_THK*VIGA_bfs))+(230/3))*1e6
+   sExtWeb=sFlange
+   sMidWeb=sFlange
+   sExtOp=sFlange
+   sMidOp=sFlange
+
+*endif
+

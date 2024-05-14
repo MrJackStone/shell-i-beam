@@ -1,0 +1,109 @@
+
+!!                                                                                                !!
+!! 3.6   CRIAR ENRIJECEDORES DE ALMA                                                              !!
+!!                                                                                                !!
+! Caso a inclusão de enrijecedores de alma esteja habilitada
+*if,WebStiffStatus,EQ,1,THEN
+
+   ! Calcular perímetro do retângulo do enrijecedor da alma
+   PerYMin=VIGA_y0
+   PerZMin=VIGA_z0-(VIGA_bf/2)
+   PerYMax=VIGA_y0+VIGA_dm
+   PerZMax=VIGA_z0+(VIGA_bf/2)
+   PerYMid=VIGA_y0+(VIGA_dm/2)
+   PerZMid=VIGA_z0
+
+   *del,StiffPositions
+   *dim,StiffPositions,ARRAY,1
+   freePosition=1
+
+   !! 3.6.1   APOIO ESQUERDO                                                                      !!
+   !!                                                                                             !!
+   *if,WebStiff_LS,EQ,1,THEN
+      *voper,TempSP,StiffPositions,ADD
+      *del,StiffPositions
+      *dim,StiffPositions,ARRAY,freePosition
+      *voper,StiffPositions,TempSP,ADD
+      StiffPositions(freePosition)=VIGA_x0
+      freePosition=freePosition+1
+      *del,TempSP
+   *endif
+
+   !! 3.6.2   APOIO DIREITO                                                                       !!
+   !!                                                                                             !!
+   *if,WebStiff_RS,EQ,1,THEN
+      *voper,TempSP,StiffPositions,ADD
+      *del,StiffPositions
+      *dim,StiffPositions,ARRAY,freePosition
+      *voper,StiffPositions,TempSP,ADD
+      StiffPositions(freePosition)=VIGA_x0+VIGA_L
+      freePosition=freePosition+1
+      *del,TempSP
+   *endif
+
+   !! 3.6.3   PONTOS DE INTRODUÇÃO DE CARGA DA FLEXÃO DE 4 PONTOS                                 !!
+   !!                                                                                             !!
+   *if,WebStiff_4P,EQ,1,AND,LoadType1,EQ,1,THEN
+      *voper,TempSP,StiffPositions,ADD
+      *del,StiffPositions
+      *dim,StiffPositions,ARRAY,freePosition+1
+      *voper,StiffPositions,TempSP,ADD
+      StiffPositions(freePosition)=VIGA_x0+(VIGA_L-LoadDistance)/2
+      StiffPositions(freePosition+1)=VIGA_x0+(VIGA_L+LoadDistance)/2
+      freePosition=freePosition+2
+      *del,TempSP
+   *endif
+
+   !! 3.6.4   PONTO DE INTRODUÇÃO DE CARGA CONCENTRADA                                            !!
+   !!                                                                                             !!
+   *if,WebStiff_PL,EQ,1,AND,LoadType3,EQ,1,THEN
+      *voper,TempSP,StiffPositions,ADD
+      *del,StiffPositions
+      *dim,StiffPositions,ARRAY,freePosition
+      *voper,StiffPositions,TempSP,ADD
+      StiffPositions(freePosition)=VIGA_x0+PointLoadPos
+      freePosition=freePosition+1
+      *del,TempSP
+   *endif
+
+   !! 3.6.5   POSIÇÕES ARBITRÁRIAS                                                                !!
+   !!                                                                                             !!
+   *if,WebStiff_X,EQ,1,AND,WebStiff_XQuant,GT,0,THEN
+      *voper,TempSP,StiffPositions,ADD
+      *del,StiffPositions
+      *dim,StiffPositions,ARRAY,freePosition+WebStiff_XQuant-1
+      *voper,StiffPositions,TempSP,ADD
+      *do,i,1,WebStiff_XQuant,1
+         StiffPositions(i+freePosition-1)=WebStiff_XPos(i)
+      *enddo
+      freePosition=freePosition+WebStiff_XQuant
+      *del,TempSP
+   *endif
+
+   !! 3.6.6   CRIAR ENRIJECEDORES                                                                 !!
+   !!                                                                                             !!
+   *if,freePosition,GT,1,THEN
+      *get,ParLength,PARM,StiffPositions,DIM,X
+      *if,ParLength,GT,0,THEN
+         *vfun,StiffPositions,ASORT,StiffPositions
+         PrevPos=VIGA_x0-VIGA_L
+         *do,i,1,ParLength,1
+            XPos=StiffPositions(i)
+            *if,XPos,NE,PrevPos,THEN
+               *if,XPos,LE,VIGA_L+VIGA_x0,THEN
+                  SLICEYZ,XPos,PerYMin,PerZMin,PerYMid,PerZMid,1
+                  SLICEYZ,XPos,PerYMin,PerZMid,PerYMid,PerZMax,1
+                  SLICEYZ,XPos,PerYMid,PerZMin,PerYMax,PerZMid,1
+                  SLICEYZ,XPos,PerYMid,PerZMid,PerYMax,PerZMax,1
+               *endif
+               PrevPos=XPos
+            *endif
+         *enddo
+      *endif
+   *endif
+
+*endif
+
+! Mesclar entidades do solid model
+NUMMRG,KP,1E-8
+

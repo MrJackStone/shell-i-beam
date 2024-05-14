@@ -1,0 +1,126 @@
+! Determinação da distribuição de tensões residuais adotada
+*if,IncludeResidualStresses,EQ,1,THEN
+   ! Tipo 1: distribuição de Sonck (012)
+   *if,VIGA_tipo,EQ,1,THEN
+      ! Para vigas casteladas
+      dbRatio=VIGA_dt/VIGA_bf
+      *if,dbRatio,GT,1.2,THEN
+         sExtWeb=-100e6
+         sMidWeb=50e6
+         sExtOp=-100e6
+         sMidOp=50e6
+      *else
+         sExtWeb=-150e6
+         sMidWeb=100e6
+         sExtOp=-150e6
+         sMidOp=100e6
+      *endif
+   *elseif,VIGA_tipo,EQ,2,THEN
+      ! Para vigas celulares
+      sExtWeb=-150e6
+      sMidWeb=0
+      sExtOp=-150e6
+      sMidOp=0
+!      sExtWeb=-100e6
+!      sMidWeb=50e6
+!      sExtOp=-150e6
+!      sMidOp=0
+   *endif
+*elseif,IncludeResidualStresses,EQ,2,THEN
+   ! Tipo 2: distribuição de Vieira (040)
+   sFlange=((225/4)*(SEC_Alma1_THK*(VIGA_dt-SEC_Mesa_THK)/(SEC_Mesa_THK*VIGA_bf))-(25/3))*1e6
+   sWeb=(-1)*((100/9)*(SEC_Alma1_THK*(VIGA_dt-SEC_Mesa_THK)/(SEC_Mesa_THK*VIGA_bf))+(230/3))*1e6
+   sExtWeb=sFlange
+   sMidWeb=sFlange
+   sExtOp=sFlange
+   sMidOp=sFlange
+*endif
+
+! Definições para introdução de tensões residuais
+INISTATE,SET,CSYS,-2
+INISTATE,SET,DTYP,STRE
+INISTATE,SET,NODE,1
+
+! Tensão residuai nas mesas
+NSEL,S,LOC,Y,VIGA_y0
+NSEL,A,LOC,Y,VIGA_y0+VIGA_dt
+*get,nodeCount,NODE,0,COUNT
+
+nthNode=0
+totalFlangeResStress=0
+! Para cada nó das mesas:
+*do,i,1,nodeCount,1
+   ! Obter número do nó
+   nthNode=NDNEXT(nthNode)
+   ! Obter coordenadas do nó
+   xVal=NX(nthNode)
+   zVal=NZ(nthNode)
+   ! Verificar se o nó está numa seção de montante ou abertura
+   *if,xVal,LE,xBeg,THEN
+      ! Caso o nó esteja antes da primeira abertura: montante (0)
+      nodePosition=0
+   *elseif,xVal,GE,xEnd,THEN
+      ! Caso o nó esteja após a última abertura: montante (0)
+      nodePosition=0
+   *else
+      ! Caso o nó esteja na região com aberturas:
+      ! Calcular o número da abertura
+      nthOpening=(xVal-xBeg)/VIGA_e
+      opNum=NINT(nthOpening)
+      *if,opNum,LT,nthOpening,THEN
+         opNum=opNum+1
+      *endif
+      ! Determinar a coordenada X do início da abertura
+      xBegLocal=VIGA_e*(opNum-1)+xBeg
+      ! Alterar para sistema de coordenadas local com origem no início da abertura
+      xLocal=xVal-xBegLocal
+      ! Verificar se o nó está na região com abertura
+      *if,xLocal,GT,VIGA_o,THEN
+         ! Nó após a abertura: montante (0)
+         nodePosition=0
+      *else
+         ! Nó na seção com abertura: abertura (1)
+         nodePosition=1
+      *endif
+   *endif
+   ! Determinar os valores de tensão no centro e nas extremidades a utilizar
+   *if,nodePosition,EQ,0,THEN
+      ! Caso o nó esteja em seção de montante
+      sExt=sExtWeb
+      sMid=sMidWeb
+   *elseif,nodePosition,EQ,1,THEN
+      ! Caso o nó esteja em seção com abertura
+      sExt=sExtOp
+      sMid=sMidOp
+   *endif
+
+   ! Determinar a tensão residual no nó
+   *if,zVal,LE,VIGA_z0,THEN
+      ! Caso o nó esteja na metade esquerda da seção
+      nodalStress=2*((sMid-sExt)/VIGA_bf)*(zVal-VIGA_z0)+sMid
+   *else
+      ! Caso o nó esteja na metade direita da seção
+      nodalStress=2*((sExt-sMid)/VIGA_bf)*(zVal-VIGA_z0)+sMid
+   *endif
+
+   INISTATE,DEFINE,nthNode,,,,nodalStress
+   totalFlangeResStress=totalFlangeResStress+nodalStress
+*enddo
+
+! Tensões residuais na alma
+ALLSEL
+NSEL,U,LOC,Y,VIGA_y0
+NSEL,U,LOC,Y,VIGA_y0+VIGA_dt
+NSEL,R,LOC,Z,VIGA_z0
+*if,IncludeResidualStresses,EQ,1,THEN
+   *get,nodeCount,NODE,0,COUNT
+   webResStress=-(totalFlangeResStress*SEC_Mesa_THK)/(nodeCount*SEC_Alma1_THK)
+*elseif,IncludeResidualStresses,EQ,2,THEN
+   webResStress=sWeb
+*endif
+INISTATE,DEFINE,ALL,,,,webResStress
+
+ALLSEL
+
+
+

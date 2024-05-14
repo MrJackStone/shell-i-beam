@@ -1,0 +1,71 @@
+
+!! 4.1.5   FLEXÃO DA MESA SUPERIOR                                                                !!
+!!                                                                                                !!
+*if,GeomImperf6,NE,0,THEN
+   ! Renomear arquivo
+   FINISH
+   /filname,'GI6FName',1
+   ! Carregar modelo
+   /prep7
+   RESUME,'BaseModel',,,0,1
+   ! Inicializar load step
+   /solu
+   ANTYPE,0
+   LSCLEAR,ALL
+   NLGEOM,OFF
+   ALLSEL
+   SELTOL,1e-8
+   ! Aplicar carga
+   NSEL,S,LOC,Z,VIGA_z0+(VIGA_bf/2)
+   NSEL,A,LOC,Z,VIGA_z0-(VIGA_bf/2)
+   NSEL,R,LOC,Y,VIGA_y0+VIGA_dt
+   *get,NodeCount,NODE,0,COUNT
+   NodalLoad=GeomImperfLoad*VIGA_L/NodeCount
+   F,ALL,FY,-NodalLoad
+   ! Apoios
+   ALLSEL
+   NSEL,S,LOC,Y,VIGA_y0+VIGA_dt
+   NSEL,R,LOC,Z,VIGA_z0
+   D,ALL,UZ,0,UY,,,ROTX
+   NSEL,R,LOC,X,VIGA_x0
+   D,ALL,UX,0
+   NSEL,S,LOC,Y,VIGA_y0
+   D,ALL,ALL,0
+   ! Solucionar load step
+   ALLSEL
+   SOLVE
+   ! Ler resultados
+   /post1
+   ALLSEL
+   SET,FIRST
+   ! Plotar deformada
+   /show
+   PLNSOL,U,SUM
+   ! Nome do arquivo de imagem a ser salvo
+   imgSuffix=' (I6)'
+   imgName=STRCAT(FileName,imgSuffix)
+   ! Fotografar deformada
+   TAKEPIC,imgName,imgRes
+   ! Selecionar nós das bordas da mesa superior
+   NSEL,S,LOC,Z,VIGA_z0+(VIGA_bf/2)
+   NSEL,A,LOC,Z,VIGA_z0-(VIGA_bf/2)
+   NSEL,R,LOC,Y,VIGA_y0+VIGA_dt
+   *get,NodeCount,NODE,0,COUNT
+   nthNode=0
+   maxSDisp=0
+   ! Obter máximo deslocamento em Y (módulo)
+   *do,i,1,NodeCount,1
+      nthNode=NDNEXT(nthNode)
+      *get,sDisp,NODE,nthNode,U,Y
+      sDisp=ABS(sDisp)
+      *if,sDisp,GT,maxSDisp,THEN
+         maxSDisp=sDisp
+      *endif
+   *enddo
+   ! Calcular o fator de introdução da imperfeição geométrica tipo 6
+   UpGeomFactor6=GeomImperf6/maxSDisp
+   ALLSEL
+   FINISH
+*endif
+
+

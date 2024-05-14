@@ -1,0 +1,61 @@
+
+!! 4.1.6.1   ANÁLISE MODAL                                                                        !!
+
+*msg,UI,FileName(1),CodeVersion,'DYNAMIC ANALYSIS:','Modal'
+%C (V%f) %/&
+%C %/&
+%C
+
+/solu
+ALLSEL
+! Nova análise modal
+ANTYPE,MODAL,NEW
+! Extrair os dois primeiros modos de vibração (método Block Lanczos)
+MODOPT,LANB,VibrationModes
+
+! Solucionar análise modal
+ALLSEL
+/uis,ABORT,OFF
+KEYW,pr_sgui,1
+SOLVE
+KEYW,pr_sgui,0
+
+*msg,UI,FileName(1),CodeVersion,'DYNAMIC ANALYSIS:','Modal','Solution is done!'
+%C (V%f) %/&
+%C %/&
+%C %/&
+%C
+
+! Pós-processamento da análise modal
+/post1
+! Extrair resultados da análise modal
+!   Frequência dos modos de vibração
+*del,ModalFreqs
+*dim,ModalFreqs,ARRAY,VibrationModes
+*do,nthMode,1,VibrationModes,1
+   *get,ModeFreq,MODE,nthMode,FREQ
+   ModalFreqs(nthMode)=ModeFreq
+*enddo
+!   Frequência do primeiro modo de vibração
+ModalFreq1=ModalFreqs(1)
+!   Frequência do último modo de vibração contribuinte
+ModalFreq2=ModalFreqs(VibrationModes)
+
+! Calcular fatores ômega
+PI=ACOS(-1)
+omega1=2*PI*ModalFreq1
+omega2=2*PI*ModalFreq2
+
+! Salvar imagens dos modos de vibração
+VIEW4W
+*do,nthMode,1,VibrationModes,1
+   SET,,nthMode
+   /show
+   PLNSOL,U,SUM
+   PALV_DYNPIC_V3,'(VIBMODE%nthMode%)'
+*enddo
+
+! Fim da análise modal
+FINISH
+
+

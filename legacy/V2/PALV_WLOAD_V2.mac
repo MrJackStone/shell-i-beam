@@ -1,0 +1,100 @@
+
+!! 4.1.3   CARGA NA ALMA                                                                          !!
+!!                                                                                                !!
+*if,GeomImperf3,NE,0,THEN
+
+   *msg,UI,FileName(1),CodeVersion,'GEOMETRIC IMPERFECTION ANALYSIS:','Type 3 (Web Post Bending)'
+%C (V%f) %/&
+%C %/&
+%C
+
+   ! Renomear arquivo
+   FINISH
+   /filname,'GI3FName',1
+
+   ! Carregar modelo
+   /prep7
+   RESUME,'BaseModel',,,0,1
+
+   ! Inicializar load step
+   /solu
+   ANTYPE,0
+   LSCLEAR,ALL
+   NLGEOM,OFF
+   ALLSEL
+   SELTOL,1e-8
+
+   ! Aplicar carga transversal na linha de centro das aberturas
+   NSEL,S,LOC,Y,VIGA_y0+yOpLine
+   NSEL,R,LOC,Z,VIGA_z0
+   *get,NodeCount,NODE,0,COUNT
+   NodalLoad=GeomImperfLoad*VIGA_L/NodeCount
+   F,ALL,FZ,NodalLoad
+
+   ! Apoios
+   ALLSEL
+   NSEL,S,LOC,Y,VIGA_y0
+   NSEL,A,LOC,Y,VIGA_y0+VIGA_dm
+   NSEL,R,LOC,Z,VIGA_z0
+   *if,FlangeRot,EQ,1,THEN
+      D,ALL,UZ,0
+   *else
+      D,ALL,UZ,0,,,,ROTX
+   *endif
+   NSEL,R,LOC,Y,VIGA_y0
+   D,ALL,UY,0
+   NSEL,R,LOC,X,VIGA_x0
+   D,ALL,UX,0
+
+   ! Solucionar load step
+   ALLSEL
+   /uis,ABORT,OFF
+   KEYW,pr_sgui,1
+   SOLVE
+   KEYW,pr_sgui,0
+
+   *msg,UI,FileName(1),CodeVersion,'GEOMETRIC IMPERFECTION ANALYSIS:','Type 3 (Web Post Bending)','Solution is done!'
+%C (V%f) %/&
+%C %/&
+%C %/&
+%C
+
+   ! Ler resultados
+   /post1
+   ALLSEL
+   SET,FIRST
+
+   ! Plotar deformada
+   /show
+   PLNSOL,U,SUM
+
+   ! Imagem: deformada da imperfeição geométrica tipo 3
+   PALV_TAKEPIC,'_(I3)'
+
+   ! Selecionar nós da alma
+   NSEL,U,LOC,Y,VIGA_y0
+   NSEL,U,LOC,Y,VIGA_y0+VIGA_dm
+   NSEL,R,LOC,Z,VIGA_z0
+   *get,NodeCount,NODE,0,COUNT
+   nthNode=0
+   maxWDisp=0
+
+   ! Obter máximo deslocamento em Z (módulo)
+   *do,i,1,NodeCount,1
+      nthNode=NDNEXT(nthNode)
+      *get,wDisp,NODE,nthNode,U,Z
+      wDisp=ABS(wDisp)
+      *if,wDisp,GT,maxWDisp,THEN
+         maxWDisp=wDisp
+      *endif
+   *enddo
+
+   ! Calcular o fator de introdução da imperfeição geométrica tipo 3
+   UpGeomFactor3=GeomImperf3/maxWDisp
+
+   ALLSEL
+   FINISH
+
+*endif
+
+

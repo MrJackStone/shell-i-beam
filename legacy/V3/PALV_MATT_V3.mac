@@ -1,0 +1,103 @@
+
+!!                                                                                                !!
+!! 3.7   ATRIBUTOS DA MALHA                                                                       !!
+!!                                                                                                !!
+ALLSEL
+
+! Criar componente com áreas da alma
+ASEL,S,LOC,Z,VIGA_z0
+ASEL,U,LOC,Y,VIGA_y0
+ASEL,U,LOC,Y,VIGA_y0+VIGA_dm
+CM,COMPA_Alma,AREA
+
+! Criar componente com áreas das mesas
+ASEL,S,LOC,Y,VIGA_y0
+ASEL,A,LOC,Y,VIGA_y0+VIGA_dm
+CM,COMPA_Mesa,AREA
+ALLSEL
+
+! Criar componente com áreas dos enrijecedores de alma
+*if,WebStiffStatus,EQ,1,THEN
+   ! Selecionar apenas áreas nas posições X dos enrijecedores de alma
+   ASEL,U,AREA,,ALL
+   *get,SPCount,PARM,AllStiffPos,DIM,X
+   *do,j,1,SPCount,1
+      SP=AllStiffPos(j)
+      ASEL,A,LOC,X,SP
+   *enddo
+   ! Selecionar linhas adjacentes a essas áreas
+   LSLA,S
+   CM,COMPA_SPAreas,AREA
+   CM,COMPL_SPLines,LINE
+   ! Filtrar para obter apenas linhas nas mesas e no centro das aberturas
+   LSEL,S,LOC,Y,VIGA_y0
+   LSEL,A,LOC,Y,VIGA_y0+yOpLine
+   LSEL,A,LOC,Y,VIGA_y0+VIGA_dm
+   CMSEL,R,COMPL_SPLines
+   ! Filtrar seleção de áreas
+   ASLL,R,0
+   ! Criar componente
+   CM,COMPA_Enrijecedores,AREA
+   ALLSEL
+*else
+   LSEL,S,LOC,Y,VIGA_y0
+   LSEL,A,LOC,Y,VIGA_y0+VIGA_dm
+   ASLL,S,0
+   CMSEL,U,COMPA_Mesa
+   CMSEL,U,COMPA_Alma
+   CM,COMPA_Enrijecedores,AREA
+   ALLSEL
+*endif
+
+! Criar componente com áreas dos enrijecedores de abertura
+CMSEL,U,COMPA_Mesa
+CMSEL,U,COMPA_Alma
+CMSEL,U,COMPA_Enrijecedores
+CM,COMPA_OpEnrijecedores,AREA
+ALLSEL
+
+! Criar componente com áreas da mesa superior
+CMSEL,S,COMPA_Mesa
+ASEL,R,LOC,Y,VIGA_y0+VIGA_dm
+CM,COMPA_MesaSup,AREA
+
+! Criar componente com áreas da mesa inferior
+CMSEL,S,COMPA_Mesa
+ASEL,R,LOC,Y,VIGA_y0
+CM,COMPA_MesaInf,AREA
+ALLSEL
+
+! Definir atributos da alma (parte superior)
+CMSEL,S,COMPA_Alma
+ASEL,R,LOC,Y,VIGA_y0+yOpLine,VIGA_y0+2*VIGA_dm
+AATT,MAT_AlmaSup,,TYPE_SHELL181,,SEC_AlmaSup
+
+! Definir atributos da alma (parte inferior)
+CMSEL,S,COMPA_Alma
+ASEL,R,LOC,Y,VIGA_y0,VIGA_y0+yOpLine
+AATT,MAT_AlmaInf,,TYPE_SHELL181,,SEC_AlmaInf
+
+! Definir atributos da mesa superior
+CMSEL,S,COMPA_MesaSup
+AATT,MAT_MesaSup,,TYPE_SHELL181,,SEC_MesaSup
+
+! Definir atributos da mesa inferior
+CMSEL,S,COMPA_MesaInf
+AATT,MAT_MesaInf,,TYPE_SHELL181,,SEC_MesaInf
+
+! Definir atributos dos enrijecedores de alma
+CMSEL,S,COMPA_Enrijecedores
+*get,ACount,AREA,0,COUNT
+*if,ACount,GT,0,THEN
+   AATT,MAT_Enrij,,TYPE_SHELL181,,SEC_Enrij
+*endif
+
+! Definir atributos dos enrijecedores de abertura
+CMSEL,S,COMPA_OpEnrijecedores
+*get,ACount,AREA,0,COUNT
+*if,ACount,GT,0,THEN
+   AATT,MAT_OpEnrij,,TYPE_SHELL181,,SEC_OpEnrij
+*endif
+
+
+

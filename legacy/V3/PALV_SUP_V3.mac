@@ -1,0 +1,503 @@
+
+!!                                                                                                !!
+!! 5.4   APOIOS                                                                                   !!
+!!                                                                                                !!
+/prep7
+ALLSEL
+SELTOL,1e-8
+
+! Criar componente com nós das bordas da mesa inferior
+NSEL,S,LOC,Z,VIGA_z0-(VIGA_bfi/2)
+NSEL,A,LOC,Z,VIGA_z0+(VIGA_bfi/2)
+NSEL,R,LOC,Y,VIGA_y0
+ESEL,S,TYPE,,TYPE_SHELL181
+NSLE,R
+CM,COMPN_cornerBotFlangeNodes,NODE
+! Criar componente com nós das bordas da mesa superior
+NSEL,S,LOC,Z,VIGA_z0-(VIGA_bfs/2)
+NSEL,A,LOC,Z,VIGA_z0+(VIGA_bfs/2)
+NSEL,R,LOC,Y,VIGA_y0+VIGA_dm
+ESEL,S,TYPE,,TYPE_SHELL181
+NSLE,R
+CM,COMPN_cornerTopFlangeNodes,NODE
+! Criar componente com os nós das bordas de ambas as mesas
+CMSEL,S,COMPN_cornerBotFlangeNodes
+CMSEL,A,COMPN_cornerTopFlangeNodes
+CM,COMPN_cornerFlangeNodes,NODE
+
+
+!! 5.4.1   APOIO ESQUERDO                                                                         !!
+!!                                                                                                !!
+! Selecionar os nós de referência
+NSEL,S,LOC,X,VIGA_x0
+NSEL,R,LOC,Z,VIGA_z0
+ESEL,S,TYPE,,TYPE_SHELL181
+NSLE,R
+CM,COMPN_WebNodes,NODE
+! Nós da alma
+LS_midDepthNode=NODE(VIGA_x0,VIGA_y0+yOpLine,VIGA_z0)
+LS_botFlangeNode=NODE(VIGA_x0,VIGA_y0,VIGA_z0)
+LS_topFlangeNode=NODE(VIGA_x0,VIGA_y0+VIGA_dm,VIGA_z0)
+ALLSEL
+! Nós das bordas das mesas
+CMSEL,S,COMPN_cornerFlangeNodes
+NSEL,R,LOC,X,VIGA_x0
+CM,COMPN_LScornerFlangeNodes,NODE
+ALLSEL
+
+! Definir apoios (deslocamentos)
+! Deslocamento na direção X:
+*if,LS_UX,EQ,1,THEN
+   D,LS_midDepthNode,UX,0
+*elseif,LS_UX,EQ,2,THEN
+   D,LS_botFlangeNode,UX,0
+*elseif,LS_UX,EQ,3,THEN
+   D,LS_topFlangeNode,UX,0
+*endif
+! Deslocamento na direção Y:
+*if,LS_UY,EQ,1,THEN
+   D,LS_midDepthNode,UY,0
+*elseif,LS_UY,EQ,2,THEN
+   D,LS_botFlangeNode,UY,0
+*elseif,LS_UY,EQ,3,THEN
+   D,LS_topFlangeNode,UY,0
+*endif
+! Deslocamento na direção Z:
+*if,LS_UZ,EQ,1,THEN
+   D,LS_midDepthNode,UZ,0
+*elseif,LS_UZ,EQ,2,THEN
+   D,COMPN_LScornerFlangeNodes,UZ,0
+*endif
+
+! Definir apoios (rotações)
+! Empenamento restrito
+*if,LS_WARP,EQ,1,THEN
+   ! Rotação em torno de X:
+   *if,LS_ROTX,EQ,1,THEN
+      D,LS_midDepthNode,ROTX,0
+   *endif
+   ! Rotação em torno de Y:
+   *if,LS_ROTY,EQ,1,THEN
+      D,LS_midDepthNode,ROTY,0
+   *endif
+   ! Rotação em torno de Z:
+   *if,LS_ROTZ,EQ,1,THEN
+      D,LS_midDepthNode,ROTZ,0
+   *endif
+! Empenamento livre
+*elseif,LS_WARP,EQ,0,THEN
+   ! Rotação em torno de X:
+   *if,LS_ROTX,EQ,1,THEN
+      *if,LS_UZ,EQ,1,THEN
+         D,COMPN_WebNodes,UZ,0
+      *elseif,LS_UZ,EQ,2,THEN
+         D,COMPN_LScornerFlangeNodes,UZ,0
+      *else
+         D,COMPN_WebNodes,ROTX,0
+      *endif
+   *endif
+   ! Rotação em torno de Y:
+   *if,LS_ROTY,EQ,1,THEN
+      D,COMPN_WebNodes,ROTY,0
+   *endif
+   ! Rotação em torno de Z:
+   *if,LS_ROTZ,EQ,1,THEN
+      D,COMPN_WebNodes,ROTZ,0
+   *endif
+*elseif,LS_WARP,EQ,-1,THEN
+   ! Rotação em torno de X:
+   *if,LS_ROTX,EQ,1,THEN
+      *if,LS_UZ,EQ,1,THEN
+         D,COMPN_WebNodes,UZ,0
+      *elseif,LS_UZ,EQ,2,THEN
+         D,COMPN_LScornerFlangeNodes,UZ,0
+      *else
+         D,COMPN_WebNodes,ROTX,0
+      *endif
+   *endif
+   ! Rotação em torno de Y:
+   *if,LS_ROTY,EQ,1,THEN
+      D,COMPN_WebNodes,ROTY,0
+   *endif
+   ! Rotação em torno de Z:
+   *if,LS_ROTZ,EQ,1,THEN
+      D,COMPN_WebNodes,ROTZ,0
+   *endif
+*endif
+ALLSEL
+
+
+!! 5.4.2   APOIO DIREITO                                                                          !!
+!!                                                                                                !!
+! Selecionar os nós de referência
+NSEL,S,LOC,X,VIGA_x0+VIGA_L
+NSEL,R,LOC,Z,VIGA_z0
+ESEL,S,TYPE,,TYPE_SHELL181
+NSLE,R
+CM,COMPN_WebNodes,NODE
+! Nós da alma
+RS_midDepthNode=NODE(VIGA_x0+VIGA_L,VIGA_y0+yOpLine,VIGA_z0)
+RS_botFlangeNode=NODE(VIGA_x0+VIGA_L,VIGA_y0,VIGA_z0)
+RS_topFlangeNode=NODE(VIGA_x0+VIGA_L,VIGA_y0+VIGA_dm,VIGA_z0)
+ALLSEL
+! Nós das bordas das mesas
+CMSEL,S,COMPN_cornerFlangeNodes
+NSEL,R,LOC,X,VIGA_x0+VIGA_L
+CM,COMPN_RScornerFlangeNodes,NODE
+ALLSEL
+
+! Definir apoios (deslocamentos)
+! Deslocamento na direção X:
+*if,RS_UX,EQ,1,THEN
+   D,RS_midDepthNode,UX,0
+*elseif,RS_UX,EQ,2,THEN
+   D,RS_botFlangeNode,UX,0
+*elseif,RS_UX,EQ,3,THEN
+   D,RS_topFlangeNode,UX,0
+*endif
+! Deslocamento na direção Y:
+*if,RS_UY,EQ,1,THEN
+   D,RS_midDepthNode,UY,0
+*elseif,RS_UY,EQ,2,THEN
+   D,RS_botFlangeNode,UY,0
+*elseif,RS_UY,EQ,3,THEN
+   D,RS_topFlangeNode,UY,0
+*endif
+! Deslocamento na direção Z:
+*if,RS_UZ,EQ,1,THEN
+   D,RS_midDepthNode,UZ,0
+*elseif,RS_UZ,EQ,2,THEN
+   D,COMPN_RScornerFlangeNodes,UZ,0
+*endif
+
+! Definir apoios (rotações)
+! Empenamento restrito
+*if,RS_WARP,EQ,1,THEN
+   ! Rotação em torno de X:
+   *if,RS_ROTX,EQ,1,THEN
+      D,RS_midDepthNode,ROTX,0
+   *endif
+   ! Rotação em torno de Y:
+   *if,RS_ROTY,EQ,1,THEN
+      D,RS_midDepthNode,ROTY,0
+   *endif
+   ! Rotação em torno de Z:
+   *if,RS_ROTZ,EQ,1,THEN
+      D,RS_midDepthNode,ROTZ,0
+   *endif
+! Empenamento livre
+*elseif,RS_WARP,EQ,0,THEN
+   ! Rotação em torno de X:
+   *if,RS_ROTX,EQ,1,THEN
+      *if,RS_UZ,EQ,1,THEN
+         D,COMPN_WebNodes,UZ,0
+      *elseif,RS_UZ,EQ,2,THEN
+         D,COMPN_RScornerFlangeNodes,UZ,0
+      *else
+         D,COMPN_WebNodes,ROTX,0
+      *endif
+   *endif
+   ! Rotação em torno de Y:
+   *if,RS_ROTY,EQ,1,THEN
+      D,COMPN_WebNodes,ROTY,0
+   *endif
+   ! Rotação em torno de Z:
+   *if,RS_ROTZ,EQ,1,THEN
+      D,COMPN_WebNodes,ROTZ,0
+   *endif
+*elseif,RS_WARP,EQ,-1,THEN
+   ! Rotação em torno de X:
+   *if,RS_ROTX,EQ,1,THEN
+      *if,RS_UZ,EQ,1,THEN
+         D,COMPN_WebNodes,UZ,0
+      *elseif,RS_UZ,EQ,2,THEN
+         D,COMPN_RScornerFlangeNodes,UZ,0
+      *else
+         D,COMPN_WebNodes,ROTX,0
+      *endif
+   *endif
+   ! Rotação em torno de Y:
+   *if,RS_ROTY,EQ,1,THEN
+      D,COMPN_WebNodes,ROTY,0
+   *endif
+   ! Rotação em torno de Z:
+   *if,RS_ROTZ,EQ,1,THEN
+      D,COMPN_WebNodes,ROTZ,0
+   *endif
+*endif
+ALLSEL
+
+
+!! 5.4.3   APOIOS INTERMEDIÁRIOS                                                                  !!
+!!                                                                                                !!
+*if,IS_Status,EQ,1,AND,IS_Quant,GE,1,THEN
+   *do,nthIntSup,1,IS_Quant,1
+      ! Obter posição longitudinal
+      xPosition=IS_Pos(nthIntSup)+VIGA_x0
+      ! Selecionar os nós de referência
+      NSEL,S,LOC,X,xPosition
+      NSEL,R,LOC,Z,VIGA_z0
+      ESEL,S,TYPE,,TYPE_SHELL181
+      NSLE,R
+      CM,COMPN_WebNodes,NODE
+      ! Nós da alma
+      IS_midDepthNode=NODE(xPosition,VIGA_y0+yOpLine,VIGA_z0)
+      IS_botFlangeNode=NODE(xPosition,VIGA_y0,VIGA_z0)
+      IS_topFlangeNode=NODE(xPosition,VIGA_y0+VIGA_dm,VIGA_z0)
+      ALLSEL
+      ! Nós das bordas das mesas
+      CMSEL,S,COMPN_cornerFlangeNodes
+      NSEL,R,LOC,X,xPosition
+      CM,COMPN_IScornerFlangeNodes,NODE
+      ALLSEL
+
+      ! Obter definições do apoio
+      nthIS_WARP=IS_WARP(nthIntSup)
+      nthIS_UX=IS_UX(nthIntSup)
+      nthIS_UY=IS_UY(nthIntSup)
+      nthIS_UZ=IS_UZ(nthIntSup)
+      nthIS_ROTX=IS_ROTX(nthIntSup)
+      nthIS_ROTY=IS_ROTY(nthIntSup)
+      nthIS_ROTZ=IS_ROTZ(nthIntSup)
+
+      ! Definir apoios (deslocamentos)
+      ! Deslocamento na direção X:
+      *if,nthIS_UX,EQ,1,THEN
+         D,IS_midDepthNode,UX,0
+      *elseif,nthIS_UX,EQ,2,THEN
+         D,IS_botFlangeNode,UX,0
+      *elseif,nthIS_UX,EQ,3,THEN
+         D,IS_topFlangeNode,UX,0
+      *endif
+      ! Deslocamento na direção Y:
+      *if,nthIS_UY,EQ,1,THEN
+         D,IS_midDepthNode,UY,0
+      *elseif,nthIS_UY,EQ,2,THEN
+         D,IS_botFlangeNode,UY,0
+      *elseif,nthIS_UY,EQ,3,THEN
+         D,IS_topFlangeNode,UY,0
+      *endif
+      ! Deslocamento na direção Z:
+      *if,nthIS_UZ,EQ,1,THEN
+         D,IS_midDepthNode,UZ,0
+      *elseif,nthIS_UZ,EQ,2,THEN
+         D,COMPN_IScornerFlangeNodes,UZ,0
+      *endif
+
+      ! Definir apoios (rotações)
+      ! Empenamento restrito
+      *if,nthIS_WARP,EQ,1,THEN
+         ! Rotação em torno de X:
+         *if,nthIS_ROTX,EQ,1,THEN
+            D,IS_midDepthNode,ROTX,0
+         *endif
+         ! Rotação em torno de Y:
+         *if,nthIS_ROTY,EQ,1,THEN
+            D,IS_midDepthNode,ROTY,0
+         *endif
+         ! Rotação em torno de Z:
+         *if,nthIS_ROTZ,EQ,1,THEN
+            D,IS_midDepthNode,ROTZ,0
+         *endif
+         ! Empenamento livre
+      *elseif,nthIS_WARP,EQ,0,THEN
+         ! Rotação em torno de X:
+         *if,nthIS_ROTX,EQ,1,THEN
+            *if,nthIS_UZ,EQ,1,THEN
+               D,COMPN_WebNodes,UZ,0
+            *elseif,nthIS_UZ,EQ,2,THEN
+               D,COMPN_IScornerFlangeNodes,UZ,0
+            *else
+               D,COMPN_WebNodes,ROTX,0
+            *endif
+         *endif
+         ! Rotação em torno de Y:
+         *if,nthIS_ROTY,EQ,1,THEN
+            D,COMPN_WebNodes,ROTY,0
+         *endif
+         ! Rotação em torno de Z:
+         *if,nthIS_ROTZ,EQ,1,THEN
+            D,COMPN_WebNodes,ROTZ,0
+         *endif
+      *endif
+      ALLSEL
+
+   *enddo
+*endif
+
+
+!! 5.4.4   TRAVAMENTOS LATERAIS                                                                   !!
+!!                                                                                                !!
+*if,LatSupStatus,EQ,1,THEN
+
+   !! 5.4.4.1   APOIO ESQUERDO                                                                    !!
+   ALLSEL
+   *if,LatSup_LS,EQ,1,THEN
+      ! Apoiar nós das bordas das mesas na face inicial
+      CMSEL,S,COMPN_cornerFlangeNodes
+      NSEL,R,LOC,X,VIGA_x0
+      D,ALL,UZ,0
+   *elseif,LatSup_LS,EQ,2,THEN
+      ! Apoiar nós das bordas da mesa superior na face inicial
+      CMSEL,S,COMPN_cornerTopFlangeNodes
+      NSEL,R,LOC,X,VIGA_x0
+      D,ALL,UZ,0
+   *elseif,LatSup_LS,EQ,3,THEN
+      ! Apoiar nós das bordas da mesa inferior na face inicial
+      CMSEL,S,COMPN_cornerBotFlangeNodes
+      NSEL,R,LOC,X,VIGA_x0
+      D,ALL,UZ,0
+   *endif
+
+   !! 5.4.4.2   APOIO DIREITO                                                                     !!
+   ALLSEL
+   *if,LatSup_RS,EQ,1,THEN
+      ! Apoiar nós das bordas das mesas na face final
+      CMSEL,S,COMPN_cornerFlangeNodes
+      NSEL,R,LOC,X,VIGA_x0+VIGA_L
+      D,ALL,UZ,0
+   *elseif,LatSup_RS,EQ,2,THEN
+      ! Apoiar nós das bordas da mesa superior na face final
+      CMSEL,S,COMPN_cornerTopFlangeNodes
+      NSEL,R,LOC,X,VIGA_x0+VIGA_L
+      D,ALL,UZ,0
+   *elseif,LatSup_RS,EQ,3,THEN
+      ! Apoiar nós das bordas da mesa inferior na face final
+      CMSEL,S,COMPN_cornerBotFlangeNodes
+      NSEL,R,LOC,X,VIGA_x0+VIGA_L
+      D,ALL,UZ,0
+   *endif
+
+   !! 5.4.4.3   PONTOS DE INTRODUÇÃO DE CARGA DA FLEXÃO DE 4 PONTOS                               !!
+   ALLSEL
+   *if,LatSup_4P,EQ,1,AND,LoadType1,EQ,1,THEN
+      ! Selecionar nós das bordas das mesas nos pontos de aplicação de carga
+      NSEL,S,LOC,X,LoadPos1
+      NSEL,A,LOC,X,LoadPos2
+      ESEL,S,TYPE,,TYPE_SHELL181
+      NSLE,R
+      CMSEL,R,COMPN_cornerFlangeNodes
+      ! Apoiar os nós
+      D,ALL,UZ,0
+   *elseif,LatSup_4P,EQ,2,AND,LoadType1,EQ,1,THEN
+      ! Selecionar nós das bordas da mesa superior nos pontos de aplicação de carga
+      NSEL,S,LOC,X,LoadPos1
+      NSEL,A,LOC,X,LoadPos2
+      ESEL,S,TYPE,,TYPE_SHELL181
+      NSLE,R
+      CMSEL,R,COMPN_cornerTopFlangeNodes
+      ! Apoiar os nós
+      D,ALL,UZ,0
+   *elseif,LatSup_4P,EQ,3,AND,LoadType1,EQ,1,THEN
+      ! Selecionar nós das bordas da mesa inferior nos pontos de aplicação de carga
+      NSEL,S,LOC,X,LoadPos1
+      NSEL,A,LOC,X,LoadPos2
+      ESEL,S,TYPE,,TYPE_SHELL181
+      NSLE,R
+      CMSEL,R,COMPN_cornerBotFlangeNodes
+      ! Apoiar os nós
+      D,ALL,UZ,0
+   *endif
+
+   !! 5.4.4.4   PONTO DE INTRODUÇÃO DE CARGA CONCENTRADA                                          !!
+   ALLSEL
+   *if,LatSup_PL,EQ,1,AND,LoadType3,GE,1,THEN
+      ! Para cada carga concentrada:
+      *do,nthLoadPos,1,LoadType3,1
+         ! Obter coordenada X da posição da carga
+         loadPos=PL_Pos(nthLoadPos)+VIGA_x0
+         ! Selecionar nós das bordas das mesas nos pontos de aplicação de carga
+         NSEL,S,LOC,X,loadPos
+         CMSEL,R,COMPN_cornerFlangeNodes
+         ! Apoiar os nós
+         D,ALL,UZ,0
+      *enddo
+   *elseif,LatSup_PL,EQ,2,AND,LoadType3,GE,1,THEN
+      ! Para cada carga concentrada:
+      *do,nthLoadPos,1,LoadType3,1
+         ! Obter coordenada X da posição da carga
+         loadPos=PL_Pos(nthLoadPos)+VIGA_x0
+         ! Selecionar nós das bordas da mesa superior nos pontos de aplicação de carga
+         NSEL,S,LOC,X,loadPos
+         CMSEL,R,COMPN_cornerTopFlangeNodes
+         ! Apoiar os nós
+         D,ALL,UZ,0
+      *enddo
+   *elseif,LatSup_PL,EQ,3,AND,LoadType3,GE,1,THEN
+      ! Para cada carga concentrada:
+      *do,nthLoadPos,1,LoadType3,1
+         ! Obter coordenada X da posição da carga
+         loadPos=PL_Pos(nthLoadPos)+VIGA_x0
+         ! Selecionar nós das bordas da mesa inferiornos pontos de aplicação de carga
+         NSEL,S,LOC,X,loadPos
+         CMSEL,R,COMPN_cornerBotFlangeNodes
+         ! Apoiar os nós
+         D,ALL,UZ,0
+      *enddo
+   *endif
+
+   !! 5.4.4.5   POSIÇÕES ARBITRÁRIAS                                                              !!
+   ALLSEL
+   *if,LatSup_X,GT,0,AND,LatSup_XQuant,GT,0,THEN
+      *get,ParmType,PARM,LatSup_XPos,TYPE
+      *if,ParmType,EQ,1,THEN
+         ! Obter número de posições
+         *get,ParmLen,PARM,LatSup_XPos,DIM,X
+         *do,i,1,ParmLen,1
+            XPos=LatSup_XPos(i)
+            ! Selecionar nós das bordas nos pontos de aplicação de carga
+            *if,LatSup_X,EQ,1,THEN
+               ! Ambas as mesas
+               CMSEL,S,COMPN_cornerFlangeNodes
+            *elseif,LatSup_X,EQ,2,THEN
+               ! Somente a mesa superior
+               CMSEL,S,COMPN_cornerTopFlangeNodes
+            *elseif,LatSup_X,EQ,3,THEN
+               ! Somente a mesa inferior
+               CMSEL,S,COMPN_cornerBotFlangeNodes
+            *endif
+            NSEL,R,LOC,X,XPos
+            ! Apoiar os nós
+            D,ALL,UZ,0
+         *enddo
+      *endif
+   *endif
+
+   !! 5.4.4.6   CONTÍNUO                                                                          !!
+   ALLSEL
+   *if,LatSup_CONT,EQ,1,THEN
+      ! Apoio contínuo nas mesas superior e inferior
+      NSEL,S,LOC,Y,VIGA_y0
+      NSEL,A,LOC,Y,VIGA_y0+VIGA_dm
+      NSEL,R,LOC,Z,VIGA_z0
+      ESEL,S,TYPE,,TYPE_SHELL181
+      NSLE,R
+      D,ALL,UZ,0
+   *elseif,LatSup_CONT,EQ,2,THEN
+      ! Apoio contínuo apenas na mesa superior
+      NSEL,S,LOC,Y,VIGA_y0+VIGA_dm
+      NSEL,R,LOC,Z,VIGA_z0
+      ESEL,S,TYPE,,TYPE_SHELL181
+      NSLE,R
+      D,ALL,UZ,0
+   *elseif,LatSup_CONT,EQ,3,THEN
+      ! Apoio contínuo apenas na mesa inferior
+      NSEL,S,LOC,Y,VIGA_y0
+      NSEL,R,LOC,Z,VIGA_z0
+      ESEL,S,TYPE,,TYPE_SHELL181
+      NSLE,R
+      D,ALL,UZ,0
+   *endif
+
+*endif
+
+
+!! 5.4.5   MOLAS DE TORÇÃO                                                                        !!
+!!                                                                                                !!
+*if,TorsionSprings_status,EQ,1,THEN
+   CMSEL,S,COMPN_TorsionSprings
+   D,ALL,ALL,0
+   ALLSEL
+*endif
+
+

@@ -1,0 +1,72 @@
+
+!! 4.1.6   ANÁLISE DINÂMICA                                                                       !!
+!!                                                                                                !!
+*get,ParType,PARM,DynamicAnalysis,TYPE
+*if,ParType,EQ,0,AND,DynamicAnalysis,GE,1,THEN
+
+   ! Renomear arquivo
+   FINISH
+   /filname,'DYNFName',1
+
+   ! Carregar modelo
+   /prep7
+   RESUME,'BaseModel',,,0,1
+
+   ! Hora de início da análise do modelo atual
+   *get,TIME_Dynamic_t0,ACTIVE,0,TIME,WALL
+
+   ! Calcular acréscimo de densidade correspondente à massa adicional
+   TotalAddedMass=AddedMass*VIGA_L
+   TopFlangeArea=VIGA_bfs*SEC_MesaSup_THK
+   DensityIncrement=AddedMass/TopFlangeArea
+
+   ! Redefinir densidade do material da mesa superior
+   MP,DENS,MAT_MesaSup,MAT_MesaSup_DENS+DensityIncrement
+
+   ! Inicializar load step
+   /solu
+   LSCLEAR,ALL
+
+   ! Definir apoios
+   PALV_SUP_V2
+
+   !! 4.1.6.1   ANÁLISE MODAL                                                                     !!
+   ! Realizar análise modal
+   PALV_MODAL_V2
+
+   *if,DynamicAnalysis,EQ,2,THEN
+
+      !! 4.1.6.2   ANÁLISE TRANSIENTE                                                             !!
+      ! Realizar análise transiente
+      PALV_TRANS_V2
+
+   *endif
+
+   ! Massa do modelo
+   *get,TotalMass,ELEM,0,MTOT,X
+   TotalAddedMass=AddedMass*VIGA_L
+   DeadWeight=TotalMass-TotalAddedMass
+
+   ! Redefinir densidade do material (valor original)
+   /prep7
+   MP,DENS,MAT_MesaSup,MAT_MesaSup_DENS
+
+   !   Hora ao final da análise dinâmica
+   *get,TIME_Dynamic_t1,Active,0,TIME,WALL
+
+   ! Cálculo do tempo decorrido durante a análise modal
+   ET_Dynamic=(TIME_Dynamic_t1-TIME_Dynamic_t0)*60
+
+   ! Deletar arquivos
+   /delete,'DYNFName','rst'
+   /delete,'DYNFName','emat'
+   /delete,'DYNFName','esav'
+   /delete,'DYNFName','full'
+   /delete,'DYNFName','mlv'
+   /delete,'DYNFName','mode'
+   /delete,'DYNFName','r001'
+   /delete,'DYNFName','rdb'
+
+*endif
+
+

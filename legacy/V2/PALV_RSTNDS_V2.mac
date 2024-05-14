@@ -1,0 +1,120 @@
+
+!!                                                                                                !!
+!! 3.9   OBTER NÚMERO DOS NÓS DE RESULTADOS                                                       !!
+!!                                                                                                !!
+
+!! 3.9.1   DETERMINAR POSIÇÕES DE INTERESSE PARA EXTRAÇÃO DE RESULTADOS                           !!
+!!                                                                                                !!
+! Na direção X (longitudinal):
+*del,RESULTS_XPos_Val
+*dim,RESULTS_XPos_Val,ARRAY,3
+RESULTS_XPos_Val(1)=VIGA_x0, VIGA_x0 + (VIGA_L/2), VIGA_x0 + VIGA_L
+*del,RESULTS_XPos_ID
+*dim,RESULTS_XPos_ID,CHAR,3
+RESULTS_XPos_ID(1)='LS','MS','RS'
+
+! Na direção Y (altura da alma):
+*del,RESULTS_YPos_Val
+*dim,RESULTS_YPos_Val,ARRAY,3
+RESULTS_YPos_Val(1)=VIGA_y0, VIGA_y0 + yOpLine, VIGA_y0 + VIGA_dm
+*del,RESULTS_YPos_ID
+*dim,RESULTS_YPos_ID,CHAR,3
+RESULTS_YPos_ID(1)='B','M','T'
+
+! Definir graus de liberdade de interesse para extração de resultados
+*del,RESULTS_DOF_ID
+*dim,RESULTS_DOF_ID,CHAR,4
+RESULTS_DOF_ID(1)='UX','UY','UZ','RZ'
+
+!! 3.9.2   INCREMENTAR VETORES EM FUNÇÃO DOS CARREGAMENTOS APLICADOS                              !!
+!!                                                                                                !!
+! Obter o número de carregamentos aplicados
+*if,LoadType3,GE,1,THEN
+   CompWidth=2*LoadType1+1
+*else
+   CompWidth=2*LoadType1
+*endif
+! Obter a dimensão do vetor de posições em X
+*get,xCount,PARM,RESULTS_XPos_Val,DIM,1
+
+! Caso haja carregamentos tipo 1 e/ou 3:
+*if,CompWidth,GT,0,THEN
+
+   ! Incrementar o vetor de posições em X
+   *voper,TempArray,RESULTS_XPos_Val,ADD
+   *del,RESULTS_XPos_Val
+   *dim,RESULTS_XPos_Val,ARRAY,xCount+CompWidth
+   *voper,RESULTS_XPos_Val,TempArray,ADD
+   freePosition=xCount+1
+   *del,TempArray
+
+   ! Incrementar o vetor de nomes
+   *del,TempArray
+   *dim,TempArray,CHAR,xCount
+   *do,i,1,xCount
+      TempArray(i)=RESULTS_XPos_ID(i)
+   *enddo
+   *del,RESULTS_XPos_ID
+   *dim,RESULTS_XPos_ID,CHAR,xCount+CompWidth
+   *do,i,1,xCount
+      RESULTS_XPos_ID(i)=TempArray(i)
+   *enddo
+   *del,TempArray
+
+   ! Preencher novas posições dos vetores de posição e nome
+   ! Carregamento tipo 1 (flexão de quatro pontos)
+   *if,LoadType1,EQ,1,THEN
+      RESULTS_XPos_Val(freePosition)=LoadPos1
+      RESULTS_XPos_Val(freePosition+1)=LoadPos2
+      RESULTS_XPos_ID(freePosition)='FA'
+      RESULTS_XPos_ID(freePosition+1)='FB'
+      freePosition=freePosition+2
+   *endif
+   ! Carregamento tipo 3 (carga concentrada)
+   *if,LoadType3,GE,1,THEN
+      RESULTS_XPos_Val(freePosition)=LoadPos3
+      RESULTS_XPos_ID(freePosition)='PL'
+      freePosition=freePosition+1
+   *endif
+
+*endif
+
+!! 3.9.3   PREENCHER VETOR COM NÚMEROS DOS NÓS                                                    !!
+!!                                                                                                !!
+! Número de posições em X
+xCount=xCount+CompWidth
+! Número de posições em Y
+*get,yCount,PARM,RESULTS_YPos_Val,DIM,1
+! Número de graus de liberdade por nó
+*get,DOFCount,PARM,RESULTS_DOF_ID,DIM,1
+
+! Número total de nós
+ResNodeTotal=xCount*yCount
+! Inicializar vetor de nós
+*del,ResultsNodes
+*dim,ResultsNodes,ARRAY,ResNodeTotal
+
+! Inicializar o contador de nós
+resNodeCounter=0
+! Para cada posição em X:
+*do,nthX,1,xCount,1
+   ! Obter o valor da coordenada X
+   xPos=RESULTS_XPos_Val(nthX)
+   ! Para cada posição em Y:
+   *do,nthY,1,yCount,1
+      ! Obter o valor da coordenada Y
+      yPos=RESULTS_YPos_Val(nthY)
+      ! Incrementar o contador de nós
+      resNodeCounter=resNodeCounter+1
+      ! Obter número do nó na posição de interesse
+      ALLSEL
+      NSEL,R,LOC,Y,yPos
+      NSEL,R,LOC,Z,VIGA_z0
+      nthNode=NODE(xPos,yPos,VIGA_z0)
+      ! Adicionar número do nó ao vetor de nós
+      ResultsNodes(resNodeCounter)=nthNode
+   *enddo
+*enddo
+ALLSEL
+
+

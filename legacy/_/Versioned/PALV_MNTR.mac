@@ -1,0 +1,88 @@
+! Criar arquivo com registro de valor de variáveis necessárias
+*cfopen,'VARREC','dat'
+   *vwrite,CodeVersion
+   ('CodeVersion     =',F6.1)
+   *vwrite,FileName(1)
+FileName        = '%C'
+   *vwrite,LoadType1
+   ('LoadType1       =',F20.1)
+   *vwrite,Total4PointLoad
+   ('Total4PointLoad =',E20.8)
+   *vwrite,LoadType2
+   ('LoadType2       =',F20.1)
+   *vwrite,DistributedLoad
+   ('DistributedLoad =',E20.8)
+   *vwrite,LoadType3
+   ('LoadType3       =',F20.1)
+   *vwrite,PointLoadValue
+   ('PointLoadValue  =',E20.8)
+   *vwrite,LoadType4
+   ('LoadType4       =',F20.1)
+   *vwrite,CompressiveForce
+   ('CompressiveForce=',E20.8)
+   *vwrite,LoadType5
+   ('LoadType5       =',F20.1)
+   *vwrite,BendingMoment
+   ('BendingMoment   =',E20.8)
+*cfclos
+
+! Obter número de nós de resultado
+*get,RNCount,PARM,ResultsNodes,DIM,1
+! Calcular número de grupos de nó de resultado (por posição X)
+RNGroupCount=RNCount/3
+
+! Para cada grupo (por posição X) de nós:
+*do,nthNodeGroup,1,RNGroupCount,1
+
+   ! Obter número dos nós (mesa inferior, metade da alma, mesa superior)
+   BotNode=ResultsNodes(nthNodeGroup*3-2)
+   MidNode=ResultsNodes(nthNodeGroup*3-1)
+   TopNode=ResultsNodes(nthNodeGroup*3)
+
+   ! Obter strings de identificação da posição e do grau de liberdade do nó
+   xPosID=RESULTS_XPos_ID(nthNodeGroup)
+   yPosBot=RESULTS_YPos_ID(1)
+   yPosMid=RESULTS_YPos_ID(2)
+   yPosTop=RESULTS_YPos_ID(3)
+   DOFUX=RESULTS_DOF_ID(1)
+   DOFUY=RESULTS_DOF_ID(2)
+   DOFUZ=RESULTS_DOF_ID(3)
+   DOFRZ=RESULTS_DOF_ID(4)
+
+   ! Gerar nomes das variáveis (identificador do grau de liberdade e da posição do nó)
+   str1=STRCAT(xPosID,'_')
+   ! Nó da mesa inferior
+   str2=STRCAT(str1,yPosBot)
+   str3=STRCAT(str2,'_')
+   BotUYName=STRCAT(str3,DOFUY)
+   BotUZName=STRCAT(str3,DOFUZ)
+   ! Nó da metade da altura da alma
+   str2=STRCAT(str1,yPosMid)
+   str3=STRCAT(str2,'_')
+   MidUXName=STRCAT(str3,DOFUX)
+   MidUYName=STRCAT(str3,DOFUY)
+   MidUZName=STRCAT(str3,DOFUZ)
+   MidRZName=STRCAT(str3,DOFRZ)
+   ! Nó da mesa superior
+   str2=STRCAT(str1,yPosTop)
+   str3=STRCAT(str2,'_')
+   TopUYName=STRCAT(str3,DOFUY)
+   TopUZName=STRCAT(str3,DOFUZ)
+
+   ! Registrar graus de liberdade a monitorar:
+   ! Mesa inferior
+   NLHIST,NSOL,BotUYName,U,Y,BotNode
+   NLHIST,NSOL,BotUZName,U,Z,BotNode
+   ! Metade da altura da alma
+   NLHIST,NSOL,MidUXName,U,X,MidNode
+   NLHIST,NSOL,MidUYName,U,Y,MidNode
+   NLHIST,NSOL,MidUZName,U,Z,MidNode
+   NLHIST,NSOL,MidRZName,ROT,Z,MidNode
+   ! Mesa superior
+   NLHIST,NSOL,TopUYName,U,Y,TopNode
+   NLHIST,NSOL,TopUZName,U,Z,TopNode
+
+*enddo
+
+
+

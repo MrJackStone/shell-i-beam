@@ -1,0 +1,87 @@
+
+!!                                                                                                !!
+!! 3.5   SECCIONAR PEÇA                                                                           !!
+!!                                                                                                !!
+! Inicializar vetor de posições de corte
+*del,ARRADD_ARR_input
+*dim,ARRADD_ARR_input,ARRAY,1
+ARRADD_ARR_input(1)=VIGA_x0
+
+! Flexão de quatro pontos
+*if,LoadType1,EQ,1,THEN
+   ! Determinar posições das cargas
+   ARRADD_ARR_new=VIGA_x0+(VIGA_L-LoadDistance)/2
+   ARRADD
+   *del,ARRADD_ARR_input
+   *vfun,ARRADD_ARR_input,COPY,ARRADD_ARR_output
+   ARRADD_ARR_new=VIGA_x0+(VIGA_L+LoadDistance)/2
+   ARRADD
+   *del,ARRADD_ARR_input
+   *vfun,ARRADD_ARR_input,COPY,ARRADD_ARR_output
+*endif
+
+! Cargas distribuídas
+*if,LoadType2,GE,1,THEN
+   *do,nthDL,1,LoadType2,1
+      ARRADD_ARR_new=VIGA_x0+DL_PosBeg(nthDL)
+      ARRADD
+      *del,ARRADD_ARR_input
+      *vfun,ARRADD_ARR_input,COPY,ARRADD_ARR_output
+      ARRADD_ARR_new=VIGA_x0+DL_PosEnd(nthDL)
+      ARRADD
+      *del,ARRADD_ARR_input
+      *vfun,ARRADD_ARR_input,COPY,ARRADD_ARR_output
+   *enddo
+*endif
+
+! Cargas concentradas
+*if,LoadType3,GE,1,THEN
+   *do,nthPL,1,LoadType3,1
+      ARRADD_ARR_new=VIGA_x0+PL_Pos(nthPL)
+      ARRADD
+      *del,ARRADD_ARR_input
+      *vfun,ARRADD_ARR_input,COPY,ARRADD_ARR_output
+   *enddo
+*endif
+
+! Apoios intermediários
+*if,IS_Status,EQ,1,AND,IS_Quant,GE,1,THEN
+   *do,nthIS,1,IS_Quant,1
+      ARRADD_ARR_new=VIGA_x0+IS_Pos(nthIS)
+      ARRADD
+      *del,ARRADD_ARR_input
+      *vfun,ARRADD_ARR_input,COPY,ARRADD_ARR_output
+   *enddo
+*endif
+
+! Apoios laterais: posições arbitrárias
+*if,LatSup_X,EQ,1,AND,LatSup_XQuant,GE,1,THEN
+   *do,nthLS,1,LatSup_XQuant,1
+      ARRADD_ARR_new=VIGA_x0+LatSup_XPos(nthLS)
+      ARRADD
+      *del,ARRADD_ARR_input
+      *vfun,ARRADD_ARR_input,COPY,ARRADD_ARR_output
+   *enddo
+*endif
+
+! Organizar vetor de posições de corte no plano YZ
+*get,ParType,PARM,ARRADD_ARR_output,TYPE
+*if,ParType,EQ,1,THEN
+   *del,ARRUNIQ_ARR_input
+   *vfun,ARRUNIQ_ARR_input,COPY,ARRADD_ARR_output
+   *vfun,ARRUNIQ_ARR_input,ASORT,ARRUNIQ_ARR_input
+   ARRUNIQ
+   *del,SliceYZPos
+   *vfun,SliceYZPos,COPY,ARRUNIQ_ARR_output
+
+   ! Fatiar barra
+   *get,SliceCount,PARM,SliceYZPos,DIM,X
+   *if,SliceCount,GE,1,THEN
+      *do,nthSlice,1,SliceCount,1
+         ALLSEL
+         xPos=SliceYZPos(nthSlice)
+         WPSLICEYZ,xPos
+      *enddo
+   *endif
+*endif
+

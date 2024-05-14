@@ -1,0 +1,408 @@
+
+!!                                                                                                !!
+!! 5.5   CARREGAMENTO                                                                             !!
+!!                                                                                                !!
+ALLSEL
+FCUM,ADD
+
+!! 5.5.1   FLEXÃO DE QUATRO PONTOS                                                                !!
+!!                                                                                                !!
+ALLSEL
+*if,LoadType1,EQ,1,THEN
+   ! Primeiro ponto de aplicação de carga
+   NSEL,S,LOC,X,LoadPos1
+   NSEL,R,LOC,Y,VIGA_y0+VIGA_dm
+   NSEL,R,LOC,Z,VIGA_z0
+   *get,FNode1,NODE,0,NUM,MIN
+   F,FNode1,FY,Total4PointLoad/2
+   ! Segundo ponto de aplicação de carga
+   NSEL,S,LOC,X,LoadPos2
+   NSEL,R,LOC,Y,VIGA_y0+VIGA_dm
+   NSEL,R,LOC,Z,VIGA_z0
+   *get,FNode2,NODE,0,NUM,MIN
+   F,FNode2,FY,Total4PointLoad/2
+*endif
+
+!! 5.5.2   CARREGAMENTO VERTICAL UNIFORMEMENTE DISTRIBUÍDO                                        !!
+!!                                                                                                !!
+ALLSEL
+*if,LoadType2,EQ,1,THEN
+   ! Selecionar nós do topo da alma
+   NSEL,S,LOC,Y,VIGA_y0+VIGA_dm
+   NSEL,R,LOC,Z,VIGA_z0
+   NSEL,R,LOC,X,VIGA_x0,VIGA_x0+VIGA_L
+   ! Determinar carga nodal
+   *get,NodeCount,NODE,0,COUNT
+   NodalLoad=VIGA_L*DistributedLoad/NodeCount
+   ! Obter número do nó de resultados
+   FNode4=NODE(VIGA_x0+(VIGA_L/2),VIGA_y0+VIGA_dm,VIGA_z0)
+   ! Aplicar forças nodais
+   F,ALL,FY,NodalLoad
+*endif
+
+!! 5.5.3   CARGA VERTICAL CONCENTRADA                                                             !!
+!!                                                                                                !!
+ALLSEL
+*if,LoadType3,EQ,1,THEN
+   ! Selecionar nó de aplicação da carga
+   NSEL,S,LOC,X,LoadPos3
+   NSEL,R,LOC,Y,VIGA_y0+VIGA_dm
+   NSEL,R,LOC,Z,VIGA_z0-(VIGA_bf/2),VIGA_z0+(VIGA_bf/2)
+   !NSEL,R,LOC,Z,VIGA_z0
+   *get,nCount,NODE,0,COUNT
+   NodalForce=PointLoadValue/nCount
+   !*get,FNode3,NODE,0,NUM,MIN
+   ! Aplicar força nodal
+   !F,FNode3,FY,PointLoadValue
+   F,ALL,FY,NodalForce
+   NSEL,R,LOC,Z,VIGA_z0
+   *get,FNode3,NODE,0,NUM,MIN
+*endif
+
+!! 5.5.4   COMPRESSÃO AXIAL                                                                       !!
+!!                                                                                                !!
+ALLSEL
+*if,LoadType4,EQ,1,THEN
+
+   !! 5.5.4.1   CÁLCULOS GERAIS                                                                   !!
+   ! Calcular a tensão normal do diagrama retangular
+   NormalStress=CompressiveForce/VIGA_area
+   ! Calcular a força atuando na mesa
+   FlangeForce=(2)*NormalStress*VIGA_bf*SEC_Mesa_THK
+   ! Calcular a força atuando na alma
+   WebForce=NormalStress*(VIGA_dm-SEC_Mesa_THK)*SEC_Alma1_THK
+
+   !! 5.5.4.2   FACE INICIAL                                                                      !!
+   ! Selecionar nós das mesas
+   NSEL,S,LOC,Y,VIGA_y0
+   NSEL,A,LOC,Y,VIGA_y0+VIGA_dm
+   NSEL,R,LOC,X,VIGA_x0
+   ! Calcular força nodal nos nós das mesas
+   *get,NodeCount,NODE,0,COUNT
+   NodalLoad=FlangeForce/NodeCount
+   ! Aplicar força nos nós das mesas
+   F,ALL,FX,NodalLoad
+   ! Selecionar nós da alma
+   NSEL,S,LOC,X,VIGA_x0
+   NSEL,U,LOC,Y,VIGA_y0
+   NSEL,U,LOC,Y,VIGA_y0+VIGA_dm
+   ! Calcular força nodal nos nós da alma
+   *get,NodeCount,NODE,0,COUNT
+   NodalLoad=WebForce/NodeCount
+   ! Aplicar força nos nós da alma
+   F,ALL,FX,NodalLoad
+
+   !! 5.5.4.3   FACE FINAL                                                                        !!
+   ! Selecionar nós das mesas
+   NSEL,S,LOC,Y,VIGA_y0
+   NSEL,A,LOC,Y,VIGA_y0+VIGA_dm
+   NSEL,R,LOC,X,VIGA_x0+VIGA_L
+   ! Calcular força nodal nos nós das mesas
+   *get,NodeCount,NODE,0,COUNT
+   NodalLoad=FlangeForce/NodeCount
+   ! Aplicar força nos nós das mesas
+   F,ALL,FX,-NodalLoad
+   ! Selecionar nós da alma
+   NSEL,S,LOC,X,VIGA_x0+VIGA_L
+   NSEL,U,LOC,Y,VIGA_y0
+   NSEL,U,LOC,Y,VIGA_y0+VIGA_dm
+   ! Calcular força nodal nos nós da alma
+   *get,NodeCount,NODE,0,COUNT
+   NodalLoad=WebForce/NodeCount
+   ! Obter número do nó de resultados
+   FNode5=NODE(VIGA_x0+VIGA_L,(VIGA_y0+VIGA_dm)/2,VIGA_z0)
+   ! Aplicar força nos nós da alma
+   F,ALL,FX,-NodalLoad
+
+*endif
+
+!! 5.5.5   MOMENTO FLETOR NAS EXTREMIDADES                                                        !!
+!!                                                                                                !!
+ALLSEL
+*if,LoadType5,EQ,1,THEN
+
+   !! 5.5.5.1   CÁLCULOS GERAIS                                                                   !!
+   ! Calcular a tensão normal dos diagramas retangulares
+   NormalStress=BendingMoment/VIGA_Wpl
+   ! Calcular a força atuando na mesa
+   FlangeForce=NormalStress*VIGA_bf*SEC_Mesa_THK
+   ! Calcular a força atuando na alma
+   WebForce=(1/2)*NormalStress*(VIGA_dm-SEC_Mesa_THK)*SEC_Alma1_THK
+   ! Profundidade do centroide da metade superior do perfil
+   dw=VIGA_dg-2*SEC_Mesa_THK
+   yt=((SEC_Mesa_THK/2)*VIGA_bf*SEC_Mesa_THK+(SEC_Mesa_THK+(dw/4))*(dw/2)*SEC_Alma1_THK)/(VIGA_bf*SEC_Mesa_THK+(dw/2)*SEC_Alma1_THK)
+   ! Tensão máxima do diagrama elástico
+   sigma=(2*BendingMoment/(VIGA_dg-2*yt))/(SEC_Mesa_THK*VIGA_bf*(2-(2*SEC_Mesa_THK/VIGA_dg))+dw*SEC_Alma1_THK*(1-(2*SEC_Mesa_THK/VIGA_dg)))
+   ! Tensão média do diagrama elástico nas mesas
+   sigmaFlange=(sigma/2)*(2-(2*SEC_Mesa_THK/VIGA_dg))
+   ! Força do diagrama elástico nas mesas
+   ForceFlange=sigmaFlange*SEC_Mesa_THK*VIGA_bf
+
+   ! Obter número de nós de referência
+   ALLSEL
+   FNode6=NODE(VIGA_x0,VIGA_y0+(VIGA_dm/2),VIGA_z0)
+   FNode7=NODE(VIGA_x0+VIGA_L,VIGA_y0+(VIGA_dm/2),VIGA_z0)
+
+   ! Tipo de introdução do momento fletor
+   *get,ParType,BMMode,PARM,TYPE
+
+   *if,ParType,EQ,-1,OR,BMMode,EQ,0,THEN
+!!
+!! *** DIAGRAMA ELÁSTICO ***
+!!
+   !! 5.5.5.2   FACE INICIAL (MESA SUPERIOR)                                                      !!
+   ! Selecionar nós da mesa
+   NSEL,S,LOC,X,VIGA_x0
+   NSEL,R,LOC,Y,VIGA_y0+VIGA_dm
+   ! Calcular força nodal nos nós da mesa
+   *get,NodeCount,NODE,0,COUNT
+   NodalLoad=ForceFlange/NodeCount
+   ! Aplicar força nos nós da mesa
+   F,ALL,FX,NodalLoad
+
+   !! 5.5.5.3   FACE INICIAL (MESA INFERIOR)                                                      !!
+   ! Selecionar nós da mesa
+   NSEL,S,LOC,X,VIGA_x0
+   NSEL,R,LOC,Y,VIGA_y0
+   ! Calcular força nodal nos nós da mesa
+   *get,NodeCount,NODE,0,COUNT
+   NodalLoad=ForceFlange/NodeCount
+   ! Aplicar força nos nós da mesa
+   F,ALL,FX,-NodalLoad
+
+   !! 5.5.5.4   FACE FINAL (MESA SUPERIOR)                                                        !!
+   ! Selecionar nós da mesa
+   NSEL,S,LOC,X,VIGA_x0+VIGA_L
+   NSEL,R,LOC,Y,VIGA_y0+VIGA_dm
+   ! Calcular força nodal nos nós da mesa
+   *get,NodeCount,NODE,0,COUNT
+   NodalLoad=ForceFlange/NodeCount
+   ! Aplicar força nos nós da mesa
+   F,ALL,FX,-NodalLoad
+
+   !! 5.5.5.5   FACE FINAL (MESA INFERIOR)                                                        !!
+   ! Selecionar nós da mesa
+   NSEL,S,LOC,X,VIGA_x0+VIGA_L
+   NSEL,R,LOC,Y,VIGA_y0
+   ! Calcular força nodal nos nós da mesa
+   *get,NodeCount,NODE,0,COUNT
+   NodalLoad=ForceFlange/NodeCount
+   ! Aplicar força nos nós da mesa
+   F,ALL,FX,NodalLoad
+
+   !! 5.5.5.6   FACE INICIAL (ALMA)                                                               !!
+   ! Selecionar nós da alma
+   NSEL,S,LOC,X,VIGA_x0
+   NSEL,R,LOC,Z,VIGA_z0
+   NSEL,U,LOC,Y,VIGA_y0
+   NSEL,U,LOC,Y,VIGA_y0+VIGA_dm
+   ! Calcular distância de influência dos nós da alma
+   *get,NodeCount,NODE,0,COUNT
+   yInfl=VIGA_dm/(NodeCount+1)
+   ! Aplicar força nodal nos nós da alma
+   nthNode=0
+   *do,nCnt,1,NodeCount,1
+      nthNode=NDNEXT(nthNode)
+      YCoord=NY(nthNode)
+      yi=YCoord-(VIGA_y0+(VIGA_dm/2))
+      sigmai=2*sigma*yi/VIGA_dg
+      ForceWebi=sigmai*yInfl*SEC_Alma1_THK
+      F,nthNode,FX,ForceWebi
+   *enddo
+   ! Incrementar força nos nós das interfaces alma-mesa
+   NSEL,S,LOC,X,VIGA_x0
+   NSEL,R,LOC,Y,VIGA_y0+VIGA_dm
+   NSEL,R,LOC,Z,VIGA_z0
+   *get,TopNode,NODE,,NUM,MIN
+   topForce=sigma*(yInfl/2)*SEC_Alma1_THK
+   F,TopNode,FX,topForce
+   NSEL,S,LOC,X,VIGA_x0
+   NSEL,R,LOC,Y,VIGA_y0
+   NSEL,R,LOC,Z,VIGA_z0
+   *get,BotNode,NODE,,NUM,MIN
+   botForce=sigma*(yInfl/2)*SEC_Alma1_THK
+   F,BotNode,FX,-botForce
+
+   !! 5.5.5.7   FACE FINAL (ALMA)                                                                 !!
+   ! Selecionar nós da alma
+   NSEL,S,LOC,X,VIGA_x0+VIGA_L
+   NSEL,R,LOC,Z,VIGA_z0
+   NSEL,U,LOC,Y,VIGA_y0
+   NSEL,U,LOC,Y,VIGA_y0+VIGA_dm
+   ! Calcular distância de influência dos nós da alma
+   *get,NodeCount,NODE,0,COUNT
+   yInfl=VIGA_dm/(NodeCount+1)
+   ! Aplicar força nodal nos nós da alma
+   nthNode=0
+   *do,nCnt,1,NodeCount,1
+      nthNode=NDNEXT(nthNode)
+      YCoord=NY(nthNode)
+      yi=YCoord-(VIGA_y0+(VIGA_dm/2))
+      sigmai=2*sigma*yi/VIGA_dg
+      ForceWebi=sigmai*yInfl*SEC_Alma1_THK
+      F,nthNode,FX,-ForceWebi
+   *enddo
+   ! Incrementar força nos nós das interfaces alma-mesa
+   NSEL,S,LOC,X,VIGA_x0+VIGA_L
+   NSEL,R,LOC,Y,VIGA_y0+VIGA_dm
+   NSEL,R,LOC,Z,VIGA_z0
+   *get,TopNode,NODE,,NUM,MIN
+   topForce=sigma*(yInfl/2)*SEC_Alma1_THK
+   F,TopNode,FX,-topForce
+   NSEL,S,LOC,X,VIGA_x0+VIGA_L
+   NSEL,R,LOC,Y,VIGA_y0
+   NSEL,R,LOC,Z,VIGA_z0
+   *get,BotNode,NODE,,NUM,MIN
+   botForce=sigma*(yInfl/2)*SEC_Alma1_THK
+   F,BotNode,FX,botForce
+!!
+!! *** DIAGRAMA ELÁSTICO ***
+!!
+
+
+   *elseif,BMMode,EQ,2,THEN
+!!
+!! *** BINÁRIO NAS MESAS ***
+!!
+   ! Calcular o binário de forças
+   AxForce=BendingMoment/VIGA_dm
+
+   ! Aplicar força na mesa superior (face esquerda)
+   NSEL,S,LOC,X,VIGA_x0
+   NSEL,R,LOC,Y,VIGA_y0+VIGA_dm
+   *get,NodeCount,NODE,0,COUNT
+   NodalLoad=AxForce/NodeCount
+   F,ALL,FX,NodalLoad
+
+   ! Aplicar força na mesa inferior (face esquerda)
+   NSEL,S,LOC,X,VIGA_x0
+   NSEL,R,LOC,Y,VIGA_y0
+   *get,NodeCount,NODE,0,COUNT
+   NodalLoad=AxForce/NodeCount
+   F,ALL,FX,-NodalLoad
+
+   ! Aplicar força na mesa superior (face direita)
+   NSEL,S,LOC,X,VIGA_x0+VIGA_L
+   NSEL,R,LOC,Y,VIGA_y0+VIGA_dm
+   *get,NodeCount,NODE,0,COUNT
+   NodalLoad=AxForce/NodeCount
+   F,ALL,FX,-NodalLoad
+
+   ! Aplicar força na mesa inferior (face direita)
+   NSEL,S,LOC,X,VIGA_x0+VIGA_L
+   NSEL,R,LOC,Y,VIGA_y0
+   *get,NodeCount,NODE,0,COUNT
+   NodalLoad=AxForce/NodeCount
+   F,ALL,FX,NodalLoad
+!!
+!! *** BINÁRIO NAS MESAS ***
+!!
+
+
+!!
+!! *** MOMENTO FLETOR DIRETO ***
+!!
+!   F,FNode6,MZ,-BendingMoment
+!   F,FNode7,MZ,BendingMoment
+!!
+!! *** MOMENTO FLETOR DIRETO ***
+!!
+
+
+   *elseif,BMMode,EQ,1,THEN
+!!
+!! *** DIAGRAMA PLÁSTICO ***
+!!
+   !! 5.5.5.2   FACE INICIAL (METADE SUPERIOR)                                                    !!
+   ! Selecionar nós da mesa
+   NSEL,S,LOC,X,VIGA_x0
+   NSEL,R,LOC,Y,VIGA_y0+VIGA_dm
+   ! Calcular força nodal nos nós da mesa
+   *get,NodeCount,NODE,0,COUNT
+   NodalLoad=FlangeForce/NodeCount
+   ! Aplicar força nos nós da mesa
+   F,ALL,FX,NodalLoad
+   ! Selecionar nós da alma
+   NSEL,S,LOC,X,VIGA_x0
+   NSEL,R,LOC,Y,VIGA_y0+(VIGA_dm/2),VIGA_y0+VIGA_dm
+   ! Obter número do nó de resultados
+   FNode6=NODE(VIGA_x0,VIGA_y0+(VIGA_dm/2),VIGA_z0)
+   ! Remover da seleção nós da borda
+   NSEL,U,LOC,Y,VIGA_y0+VIGA_dm
+   NSEL,U,LOC,Y,VIGA_y0+(VIGA_dm/2)
+   ! Calcular a força nodal nos nós da alma
+   *get,NodeCount,NODE,0,COUNT
+   NodalLoad=WebForce/NodeCount
+   ! Aplicar força nos nós da alma
+   F,ALL,FX,NodalLoad
+
+   !! 5.5.5.3   FACE INICIAL (METADE INFERIOR)                                                    !!
+   ! Selecionar nós da mesa
+   NSEL,S,LOC,X,VIGA_x0
+   NSEL,R,LOC,Y,VIGA_y0
+   ! Calcular força nodal nos nós da mesa
+   *get,NodeCount,NODE,0,COUNT
+   NodalLoad=FlangeForce/NodeCount
+   ! Aplicar força nos nós da mesa
+   F,ALL,FX,-NodalLoad
+   ! Selecionar nós da alma
+   NSEL,S,LOC,X,VIGA_x0
+   NSEL,R,LOC,Y,VIGA_y0,VIGA_y0+(VIGA_dm/2)
+   NSEL,U,LOC,Y,VIGA_y0
+   NSEL,U,LOC,Y,VIGA_y0+(VIGA_dm/2)
+   ! Calcular a força nodal nos nós da alma
+   *get,NodeCount,NODE,0,COUNT
+   NodalLoad=WebForce/NodeCount
+   ! Aplicar força nos nós da alma
+   F,ALL,FX,-NodalLoad
+
+   !! 5.5.5.4   FACE FINAL (METADE SUPERIOR)                                                      !!
+   ! Selecionar nós da mesa
+   NSEL,S,LOC,X,VIGA_x0+VIGA_L
+   NSEL,R,LOC,Y,VIGA_y0+VIGA_dm
+   ! Calcular força nodal nos nós da mesa
+   *get,NodeCount,NODE,0,COUNT
+   NodalLoad=FlangeForce/NodeCount
+   ! Aplicar força nos nós da mesa
+   F,ALL,FX,-NodalLoad
+   ! Selecionar nós da alma
+   NSEL,S,LOC,X,VIGA_x0+VIGA_L
+   NSEL,R,LOC,Y,VIGA_y0+(VIGA_dm/2),VIGA_y0+VIGA_dm
+   ! Obter número do nó de resultados
+   FNode7=NODE(VIGA_x0+VIGA_L,VIGA_y0+(VIGA_dm/2),VIGA_z0)
+   ! Remover da seleção nós da borda
+   NSEL,U,LOC,Y,VIGA_y0+VIGA_dm
+   NSEL,U,LOC,Y,VIGA_y0+(VIGA_dm/2)
+   ! Calcular a força nodal nos nós da alma
+   *get,NodeCount,NODE,0,COUNT
+   NodalLoad=WebForce/NodeCount
+   ! Aplicar força nos nós da alma
+   F,ALL,FX,-NodalLoad
+
+   !! 5.5.5.5   FACE FINAL (METADE INFERIOR)                                                      !!
+   ! Selecionar nós da mesa inferior (face final)
+   NSEL,S,LOC,X,VIGA_x0+VIGA_L
+   NSEL,R,LOC,Y,VIGA_y0
+   ! Calcular força nodal nos nós da mesa inferior (face final)
+   *get,NodeCount,NODE,0,COUNT
+   NodalLoad=FlangeForce/NodeCount
+   ! Aplicar força nos nós da mesa inferior (face final)
+   F,ALL,FX,NodalLoad
+   ! Selecionar nós da alma
+   NSEL,S,LOC,X,VIGA_x0+VIGA_L
+   NSEL,R,LOC,Y,VIGA_y0,VIGA_y0+(VIGA_dm/2)
+   NSEL,U,LOC,Y,VIGA_y0
+   NSEL,U,LOC,Y,VIGA_y0+(VIGA_dm/2)
+   ! Calcular a força nodal nos nós da alma
+   *get,NodeCount,NODE,0,COUNT
+   NodalLoad=WebForce/NodeCount
+   ! Aplicar força nos nós da alma
+   F,ALL,FX,NodalLoad
+!!
+!! *** DIAGRAMA PLÁSTICO ***
+!!
+*endif
+
+*endif
+
+

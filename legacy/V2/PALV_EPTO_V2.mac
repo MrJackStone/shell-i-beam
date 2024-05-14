@@ -1,0 +1,38 @@
+
+!! 6.3.6   NÓ DE DEFORMAÇÃO TOTAL MÁXIMA                                                          !!
+!!                                                                                                !!
+ALLSEL
+
+!! 6.3.6.1   DEFINIR VARIÁVEIS                                                                    !!
+! Solução nodal no nó de aplicação de carga (deslocamento vertical)
+ANSOL,9,peakEPTONode,EPPL,1,EPPL_PK
+
+!! 6.3.6.2   DEFINIR PARÂMETROS                                                                   !!
+! Fator de carga
+*vlen,LastSubstep,1
+*del,LoadFactors
+*dim,LoadFactors,ARRAY,LastSubstep
+VGET,LoadFactors(1),1
+! Deformação nodal plástica principal ep1
+*vlen,LastSubstep,1
+*del,PKNode_EPPL
+*dim,PKNode_EPPL,ARRAY,LastSubstep
+VGET,PKNode_EPPL(1),9
+*vlen
+
+!! 6.3.6.3   CAPTURAR IMAGENS DOS GRÁFICOS                                                        !!
+! Variável em x: deslocamento do nó
+XVAR,9
+! Definir intervalo do eixo X
+*vscfun,GraphXMin,MIN,PKNode_EPPL
+*vscfun,GraphXMax,MAX,PKNode_EPPL
+/xrange,GraphXMin,GraphXMax
+! Definir intervalo do eixo Y
+*vscfun,GraphYMin,MIN,LoadFactors
+*vscfun,GraphYMax,MAX,LoadFactors
+/yrange,GraphYMin,GraphYMax
+! Variável em Y: fator de carga
+/show
+PLVAR,1
+PALV_TAKEPIC,'(EPPL)'
+

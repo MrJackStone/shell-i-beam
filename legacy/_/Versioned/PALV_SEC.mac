@@ -1,0 +1,40 @@
+
+!!                                                                                                !!
+!! 3.5   SECCIONAR PEÇA                                                                           !!
+!!                                                                                                !!
+! Flexão de quatro pontos
+*if,LoadType1,EQ,1,THEN
+   ! Determinar posições das cargas
+   LoadPos1=VIGA_x0+(VIGA_L-LoadDistance)/2
+   LoadPos2=VIGA_x0+(VIGA_L+LoadDistance)/2
+   ! Fatiar viga nas posições de introdução de carga
+   ALLSEL
+   SLICEYZ, LoadPos1, VIGA_y0-VIGA_dm, VIGA_z0-2*VIGA_bf, VIGA_y0+2*VIGA_dm, VIGA_z0+2*VIGA_bf
+   SLICEYZ, LoadPos2, VIGA_y0-VIGA_dm, VIGA_z0-2*VIGA_bf, VIGA_y0+2*VIGA_dm, VIGA_z0+2*VIGA_bf
+*endif
+! Carga concentrada
+*if,LoadType3,EQ,1,THEN
+   ! Determinar posição de introdução da carga
+   LoadPos3=VIGA_x0+PointLoadPos
+   ! Fatiar viga na posição de introdução de carga
+   ALLSEL
+   SLICEYZ, LoadPos3, VIGA_y0-VIGA_dm, VIGA_z0-2*VIGA_bf, VIGA_y0+2*VIGA_dm, VIGA_z0+2*VIGA_bf
+*endif
+! Apoios laterais
+ALLSEL
+*if,LatSupStatus,EQ,1,THEN
+   *if,LatSup_X,EQ,1,AND,LatSup_XQuant,GT,0,THEN
+      *get,ParmType,PARM,LatSup_XPos,TYPE
+      *if,ParmType,EQ,1,THEN
+         ! Obter número de posições
+         *get,ParmLen,PARM,LatSup_XPos,DIM,X
+         *do,i,1,ParmLen,1
+            XPos=LatSup_XPos(i)
+            ! Fatiar viga na posição arbitrária de apoio lateral
+            ALLSEL
+            SLICEYZ, XPos, VIGA_y0-VIGA_dm, VIGA_z0-2*VIGA_bf, VIGA_y0+2*VIGA_dm, VIGA_z0+2*VIGA_bf
+         *enddo
+      *endif
+   *endif
+*endif
+

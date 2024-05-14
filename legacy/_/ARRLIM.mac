@@ -1,0 +1,82 @@
+! ARRLIM, minVal, useMin, maxVal, useMax
+! ARRLIM,   arg1,   arg2,   arg3,   arg4
+
+! Descrição:
+! Esta subrotina elimina valores inferiores a minVal e/ou superiores a maxVal de um vetor.
+
+! Lista de argumentos:
+! arg1: minVal  -  valor a ser utilizado como limite mínimo
+! arg2: useMin  -  tipo de verificação: [0] não verificar mínimo;
+!                                       [1] verificar mínimo com função MENOR QUE;
+!                                       [2] verificar mínimo com função MENOR OU IGUAL;
+! arg3: maxVal  -  valor a ser utilizado como limite máximo
+! arg4: useMax  -  tipo de verificação: [0] não verificar mínimo;
+!                                       [1] verificar mínimo com função MAIOR QUE;
+!                                       [2] verificar mínimo com função MAIOR OU IGUAL;
+
+! Lista de argumentos implícitos:
+! ARRLIM_ARR_input   -  vetor original
+
+! Lista de variáveis locais:
+! AR20: InputLength
+! AR21: OutputLength
+! AR22: freeIndex
+! AR23: maskValue
+! AR24: nthPos
+
+! Lista de variáveis globais (apagadas ao final da subrotina):
+! ARRLIM_ARR_MinMask
+! ARRLIM_ARR_MaxMask
+! ARRLIM_ARR_FullMask
+
+! Lista de variáveis de saída
+! ARRLIM_ARR_output
+
+! Obter comprimento do vetor de entrada
+*get,AR20,PARM,ARRLIM_ARR_input,DIM,X
+
+! Máscara de valores inferiores ao mínimo
+*del,ARRLIM_ARR_MinMask
+*if,arg2,EQ,1,THEN
+   *voper,ARRLIM_ARR_MinMask,ARRLIM_ARR_input,GE,arg1
+*elseif,arg2,EQ,2,THEN
+   *voper,ARRLIM_ARR_MinMask,ARRLIM_ARR_input,GT,arg1
+*else
+   ARRLIM_ARR_MinMask=1
+*endif
+
+! Máscara de valores superiores ao máximo
+*del,ARRLIM_ARR_MaxMask
+*if,arg4,EQ,1,THEN
+   *voper,ARRLIM_ARR_MaxMask,ARRLIM_ARR_input,LE,arg3
+*elseif,arg4,EQ,2,THEN
+   *voper,ARRLIM_ARR_MaxMask,ARRLIM_ARR_input,LT,arg3
+*else
+   ARRLIM_ARR_MaxMask=1
+*endif
+
+! Máscara geral
+*voper,ARRLIM_ARR_FullMask,ARRLIM_ARR_MinMask,AND,ARRLIM_ARR_MaxMask
+*vscfun,AR21,SUM,ARRLIM_ARR_FullMask
+
+! Remover elementos
+*del,ARRLIM_ARR_output
+*if,AR21,GT,0,THEN
+   *dim,ARRLIM_ARR_output,ARRAY,AR21
+   AR22=1
+   *do,AR24,1,AR20,1
+      AR23=ARRLIM_ARR_FullMask(AR24)
+      *if,AR23,EQ,1,THEN
+         ARRLIM_ARR_output(AR22)=ARRLIM_ARR_input(AR24)
+         AR22=AR22+1
+      *endif
+   *enddo
+*else
+   ARRLIM_ARR_output=0
+*endif
+
+! Excluir parâmetros
+*del,ARRLIM_ARR_MinMask
+*del,ARRLIM_ARR_MaxMask
+*del,ARRLIM_ARR_FullMask
+

@@ -1,0 +1,59 @@
+
+!! 6.3.1   NÓS DE INTRODUÇÃO DE CARGA DA FLEXÃO DE 4 PONTOS                                       !!
+!!                                                                                                !!
+*if,LoadType1,EQ,1,THEN
+
+   !! 6.3.1.1   DEFINIR VARIÁVEIS                                                                 !!
+   ! Solução nodal no primeiro nó de aplicação de carga (deslocamento vertical)
+   NSOL,FP1_VarNum,FNode1,U,Y,DISP_Y1
+   ! Solução nodal no segundo nó de aplicação de carga (deslocamento vertical)
+   NSOL,FP2_VarNum,FNode2,U,Y,DISP_Y2
+
+   !! 6.3.1.2   DEFINIR PARÂMETROS                                                                !!
+   ! Fator de carga
+   *vlen,LastSubstep,1
+   *del,LoadFactors
+   *dim,LoadFactors,ARRAY,LastSubstep
+   VGET,LoadFactors(1),1
+   ! Deslocamento em Y do primeiro nó
+   *vlen,LastSubstep,1
+   *del,FNode1_YDisp
+   *dim,FNode1_YDisp,ARRAY,LastSubstep
+   VGET,FNode1_YDisp(1),FP1_VarNum
+   ! Deslocamento em Y do segundo nó
+   *vlen,LastSubstep,1
+   *del,FNode2_YDisp
+   *dim,FNode2_YDisp,ARRAY,LastSubstep
+   VGET,FNode2_YDisp(1),FP2_VarNum
+   *vlen
+
+   !! 6.3.1.3   CAPTURAR IMAGENS DOS GRÁFICOS                                                     !!
+   ! Variável em x: deslocamento do primeiro nó
+   XVAR,FP1_VarNum
+   ! Definir intervalo do eixo X
+   *vscfun,GraphXMin,MIN,FNode1_YDisp
+   *vscfun,GraphXMax,MAX,FNode1_YDisp
+   /xrange,GraphXMin,GraphXMax
+   ! Definir intervalo do eixo Y
+   *vscfun,GraphYMin,MIN,LoadFactors
+   *vscfun,GraphYMax,MAX,LoadFactors
+   /yrange,GraphYMin,GraphYMax
+   ! Variável em Y: fator de carga
+   /show
+   PLVAR,1
+   PALV_TAKEPIC,'(U1)'
+
+   ! Variável em x: deslocamento do segundo nó
+   XVAR,FP2_VarNum
+   ! Definir intervalo do eixo X
+   *vscfun,GraphXMin,MIN,FNode2_YDisp
+   *vscfun,GraphXMax,MAX,FNode2_YDisp
+   /xrange,GraphXMin,GraphXMax
+   ! Variável em Y: fator de carga
+   /show
+   PLVAR,1
+   PALV_TAKEPIC,'(U2)'
+
+*endif
+
+

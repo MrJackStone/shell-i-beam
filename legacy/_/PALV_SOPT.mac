@@ -1,0 +1,31 @@
+*if,arg1,EQ,0,THEN
+   ANTYPE,0
+   NLGEOM,ON
+   NSUBST,10
+   OUTRES,ERASE
+   OUTRES,ALL,ALL
+   NCNV,2
+*elseif,arg1,EQ,1,THEN
+   ! Opções de solução
+   ANTYPE,0
+   NLGEOM,ON
+   NSUBST,SubstepCount,SubstepCount*2,SubstepCount/2
+   OUTRES,ERASE
+   OUTRES,ALL,ALL
+   NCNV,2
+
+   ALLSEL
+   ! Opções de solução para arc-length ativado
+   *if,ArcLenStatus,EQ,1,THEN
+      ! Ligar método e definir tolerâncias
+      ARCLEN,ON,MaxArcMult,MinArcMult
+      ! Determinar tipo de comportamento para término de análise
+      *if,ArcLenTerm,EQ,0,THEN
+         ARCTRM,OFF
+      *elseif,ArcLenTerm,EQ,1,THEN
+         ARCTRM,L
+      *elseif,ArcLenTerm,EQ,2,THEN
+         ARCTRM,U,VIGA_dt/5,SolNode,UY
+      *endif
+   *endif
+*endif

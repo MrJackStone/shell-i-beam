@@ -1,0 +1,266 @@
+
+!!                                                                                                !!
+!! 6.2   TABELA DE RESULTADOS                                                                     !!
+!!                                                                                                !!
+
+!! 6.2.1   COLETA DE INFORMAÇÕES PRELIMINARES                                                     !!
+!!                                                                                                !!
+! Número extra de colunas (SUBSTEP, & LoadTypes)
+ExtraColCount=11
+! Obter a dimensão do vetor de posições em X
+*get,xCount,PARM,RESULTS_XPos_Val,DIM,1
+
+! Número de posições em Y
+*get,yCount,PARM,RESULTS_YPos_Val,DIM,1
+
+! Número de graus de liberdade por nó
+*get,DOFCount,PARM,RESULTS_DOF_ID,DIM,1
+! Número total de colunas
+TotalColumns=(xCount*yCount*DOFCount)+ExtraColCount+1
+! Inicializar matriz
+*del,ResultsMatrix
+*dim,ResultsMatrix,ARRAY,LastSubstep,TotalColumns
+
+! Gerar variável TIME
+*get,minNode,NODE,,NUM,MIN
+NSOL,2,minNode,U,X
+
+!! 6.2.2   VETORES DE SUBSTEPS/FATORES DE CARGA/FORÇAS                                            !!
+!!                                                                                                !!
+! Número dos substeps
+*del,SubstepArray
+*dim,SubstepArray,ARRAY,LastSubstep
+*vfill,SubstepArray,RAMP,1,1
+*vfact
+*voper,ResultsMatrix(1,1),SubstepArray,ADD
+
+! Fator de carga
+*del,LoadFactors
+*dim,LoadFactors,ARRAY,LastSubstep
+VGET,LoadFactors(1),1
+*vfact
+*voper,LoadFactors(1),LoadFactors(1),SUB,startTime
+*voper,ResultsMatrix(1,2),LoadFactors(1),ADD
+
+! Carregamento tipo 1 (flexão de quatro pontos)
+*if,LoadType1,EQ,1,THEN
+   *vfact,Total4PointLoad
+*else
+   *vfact,0
+*endif
+*voper,ResultsMatrix(1,3),LoadFactors,ADD
+
+! Carregamento tipo 2 (distribuído, valor inicial)
+*if,LoadType2,GE,1,THEN
+   DistLoad=DL_ValueBeg(1)
+   *vfact,DistLoad
+*else
+   *vfact,0
+*endif
+*voper,ResultsMatrix(1,4),LoadFactors,ADD
+
+! Carregamento tipo 2 (distribuído, valor final)
+*if,LoadType2,GE,1,THEN
+   DistLoad=DL_ValueEnd(1)
+   *vfact,DistLoad
+*else
+   *vfact,0
+*endif
+*voper,ResultsMatrix(1,5),LoadFactors,ADD
+
+! Carregamento tipo 3 (carga concentrada)
+*if,LoadType3,GE,1,THEN
+   PointLoadV=PL_Value(1)
+   *vfact,PointLoadV
+*else
+   *vfact,0
+*endif
+*voper,ResultsMatrix(1,6),LoadFactors,ADD
+
+! Carregamento tipo 4 (compressão axial)
+*if,LoadType4,EQ,1,THEN
+   *vfact,CompressiveForce
+*else
+   *vfact,0
+*endif
+*voper,ResultsMatrix(1,7),LoadFactors,ADD
+
+! Carregamento tipo 5 (momento fletor em torno de Z)
+! Extremidade esquerda
+*if,LoadType5,EQ,1,THEN
+   *vfact,ZBendingMomentLS
+*else
+   *vfact,0
+*endif
+*voper,ResultsMatrix(1,8),LoadFactors,ADD
+! Extremidade direita
+*if,LoadType5,EQ,1,THEN
+   *vfact,ZBendingMomentRS
+*else
+   *vfact,0
+*endif
+*voper,ResultsMatrix(1,9),LoadFactors,ADD
+
+! Carregamento tipo 6 (momento fletor em torno de Y)
+! Extremidade esquerda
+*if,LoadType6,EQ,1,THEN
+   *vfact,YBendingMomentLS
+*else
+   *vfact,0
+*endif
+*voper,ResultsMatrix(1,10),LoadFactors,ADD
+! Extremidade direita
+*if,LoadType6,EQ,1,THEN
+   *vfact,YBendingMomentRS
+*else
+   *vfact,0
+*endif
+*voper,ResultsMatrix(1,11),LoadFactors,ADD
+
+
+!! 6.2.3   VETOR DE SOLUÇÕES NODAIS                                                               !!
+!!                                                                                                !!
+! Inicializar vetor de nomes de coluna
+*del,ColumnNames
+*dim,ColumnNames,CHAR,TotalColumns-ExtraColCount-1
+
+! Extração dos resultados nodais
+nthColumn=ExtraColCount
+nthVar=1
+nthNode=0
+
+! Para cada posição em X:
+*do,nthX,1,xCount,1
+
+   ! Nome da posição em X
+   xName=RESULTS_XPos_ID(nthX)
+
+   ! Para cada posição em Y:
+   *do,nthY,1,yCount,1
+
+      ! Número do enésimo nó de interesse
+      nthNode=nthNode+1
+      NodeNumber=ResultsNodes(nthNode)
+      ! Nome da posição em Y
+      yName=RESULTS_YPos_ID(nthY)
+
+      ! Para cada grau de liberdade:
+      *do,nthDOF,1,DOFCount,1
+
+         ! Incrementar número da coluna da matriz
+         nthColumn=nthColumn+1
+         ! Definir novo número de variável do time-history
+         nthVar=nthVar+1
+         *if,nthVar,GT,200,THEN
+            nthVar=2
+         *endif
+         ! Nome do grau de liberdade
+         DOFn=RESULTS_DOF_ID(nthDOF)
+
+         ! Gerar variável do time-history
+         *if,DOFn,EQ,'UX',THEN
+            NSOL,nthVar,NodeNumber,U,X,'%xName%_%yName%_%DOFn%'
+         *elseif,DOFn,EQ,'UY',THEN
+            NSOL,nthVar,NodeNumber,U,Y,'%xName%_%yName%_%DOFn%'
+         *elseif,DOFn,EQ,'UZ',THEN
+            NSOL,nthVar,NodeNumber,U,Z,'%xName%_%yName%_%DOFn%'
+         *elseif,DOFn,EQ,'RX',THEN
+            NSOL,nthVar,NodeNumber,ROT,X,'%xName%_%yName%_%DOFn%'
+         *elseif,DOFn,EQ,'RY',THEN
+            NSOL,nthVar,NodeNumber,ROT,Y,'%xName%_%yName%_%DOFn%'
+         *elseif,DOFn,EQ,'RZ',THEN
+            NSOL,nthVar,NodeNumber,ROT,Z,'%xName%_%yName%_%DOFn%'
+         *endif
+         ! Incrementar matriz de resultados
+         VGET,ResultsMatrix(1,nthColumn),nthVar
+         ! Incrementar vetor de nomes de coluna
+         ColumnNames(nthColumn-ExtraColCount)='%xName%_%yName%_%DOFn%'
+
+      *enddo
+   *enddo
+*enddo
+
+! Deformação plástica principal e1
+! Definir novo número de variável do time-history
+mthVar=nthVar+1
+*if,mthVar,GT,200,THEN
+    mthVar=2
+*endif
+! Gerar variável do time-history
+ANSOL,mthVar,peakEPTONode,EPPL,1,EPPL_PK
+! Incrementar matriz de resultados
+VGET,ResultsMatrix(1,TotalColumns),mthVar
+
+!! 6.2.4   ESCREVER ARQUIVO COM TABELA DE RESULTADOS                                              !!
+!!                                                                                                !!
+! Alterar para diretório de resultados
+/cwd,'%resFolderPath(1)%'
+! Nome do arquivo de resultados
+*del,ResFileName
+*dim,ResFileName,STRING,248
+ResFileName(1)=STRCAT('RTAB_',FileName(1))
+
+! Gerar arquivo de resultados
+*cfopen,ResFileName(1),'tbl'
+   ! Escrever cabeçalho
+   *if,CodeVersion,LE,9,THEN
+      *vwrite,CodeVersion
+      ('PALV-V',F2.0,TL1,' ')
+   *elseif,CodeVersion,LE,99,THEN
+      *vwrite,CodeVersion
+      ('PALV-V',F3.0,TL1,' ')
+   *elseif,CodeVersion,LE,999,THEN
+      *vwrite,CodeVersion
+      ('PALV-V',F4.0,TL1,' ')
+   *else
+      *vwrite,CodeVersion
+      ('PALV-V',F9.0,TL1,' ')
+   *endif
+   *vwrite,
+   ('RESULTS TABLE')
+   *vwrite,
+   (' ')
+   *vwrite,FileName(1)
+MODEL: %C
+   *vwrite,
+   ('SUBSTEP          LoadFactor          LoadType1b          LoadType1e           LoadType2           LoadType3           LoadType4          LoadType5L          LoadType5R          LoadType6L          LoadType6R ',\b)
+   *do,col,1,TotalColumns-ExtraColCount-1
+      colName=ColumnNames(col)
+      *vwrite,colName
+      ('            ',A8,\b)
+   *enddo
+   *vwrite,
+      ('                EPPL ')
+*cfclos
+
+! Remover valores pequenos (em módulo)
+*do,index1,1,LastSubstep,1
+   *do,index2,1,TotalColumns,1
+      value=ResultsMatrix(index1,index2)
+      absValue=ABS(value)
+      *if,absValue,LE,1E-98,THEN
+         ResultsMatrix(index1,index2)=0
+      *endif
+   *enddo
+*enddo
+
+! Criar arquivo temporário com comando *mwrite
+*cfopen,mwriteFile,tmp
+   *vwrite,'*mwrite,ResultsMatrix(1,1),,,,JIK,TotalColumns,LastSubstep,1'
+%s
+   *vwrite,'(F8.0,TL1,%TotalColumns-1%E20.8)'
+%s
+*cfclos
+
+! Executar arquivo temporário *mwrite
+/nopr
+/output,ResFileName(1),tbl,,APPEND
+/input,mwriteFile,tmp
+/output
+/delete,mwriteFile,tmp
+/gopr
+
+! Reverter para diretório principal
+/cwd,'%currDir(1)%'
+
+

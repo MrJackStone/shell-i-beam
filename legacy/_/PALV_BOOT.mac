@@ -1,0 +1,13 @@
+! Nome do arquivo de resultados
+MemoFileName='ECOUNTDATA'
+
+! Criar arquivo de memorial de dados
+*cfopen,MemoFileName,'memo'
+   ! Escrever cabeçalho
+   *vwrite,
+   ('PALV - ECount Data')
+   ! Saltar linha
+   *vwrite,
+   (' ')
+*cfclos
+

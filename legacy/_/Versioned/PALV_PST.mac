@@ -1,0 +1,198 @@
+
+!!                                                                                                !!
+!! 6.1   DEFORMADA                                                                                !!
+!!                                                                                                !!
+/post1
+
+! Ler último substep
+SET,LAST
+! Obter número do step
+*get,LastLoadStep,ACTIVE,,SET,LSTP
+! Obter o número de substeps do último load step
+*get,firstSBSTNum,ACTIVE,,SET,NSET,FIRST,LastLoadStep
+*get,lastSBSTNum,ACTIVE,,SET,NSET,LAST,LastLoadStep
+MaxSubsNum=lastSBSTNum-firstSBSTNum+1
+! Obter número do último substep que convergiu
+!*get,MaxSubsNum,ACTIVE,,SET,NSET,LAST,Loadstep
+*get,LastStatus,ACTIVE,,SOLU,CNVG
+*get,LastSubsNum,ACTIVE,,SET,SBST
+*if,LastStatus,EQ,0,OR,LastSubsNum,EQ,999999,THEN
+    MaxSubsNum=MaxSubsNum-1
+*endif
+! Obter número do último load step
+*get,LSNum,ACTIVE,,SET,LSTP
+! Inicializar o contador de substeps
+nthSub=1
+! Inicializar o último fator de carga a convergir
+LastLambda=0
+! inicializar o máximo fator de carga
+Lambda=0
+! Ler sequencialmente os substeps do último load step
+FLAG=1
+*dowhile,FLAG
+    *if,nthSub,LE,MaxSubsNum,THEN
+        ! Ler enésimo substep
+        SET,LSNum,nthSub
+        ! Obter verificador de convergência do substep
+        *get,nthStatus,ACTIVE,,SOLU,CNVG
+        ! Obter número do substep
+        *get,nthSubsNum,ACTIVE,,SET,SBST
+        ! Obter frequência do substep
+        *get,nthFreq,ACTIVE,,SET,FREQ
+        ! Verificar se o substep convergiu
+        nthUnconverged=0
+        *if,nthStatus,EQ,0,OR,nthSubsNum,EQ,999999,THEN
+            nthUnconverged=1
+        *endif
+        ! Verificar se o substep lido possui frequência negativa
+        nthNegative=0
+        *if,nthFreq,LT,0,THEN
+            nthNegative=1
+        *endif
+        ! Verificar se o próximo substep será lido
+        *if,nthUnconverged,EQ,1,OR,nthNegative,EQ,1,THEN
+            ! Sair do loop caso o último substep lido seja inválido
+            FLAG=0
+        *else
+            ! Redefinir o número do último substep válido
+            LastSubstep=nthSubsNum
+            ! Atualizar o último fator de carga a convergir
+            *get,LastLambda,ACTIVE,,SET,TIME
+            ! Atualizar o valor máximo do fator de carga
+            *if,LastLambda,GT,Lambda,THEN
+                ! Máximo fator de carga
+                Lambda=LastLambda
+                ! Número do substep no qual ocorre o máximo fator de carga
+                MaxLFacSubstep=LastSubstep
+            *endif
+        *endif
+        ! Incrementar o contador de substeps
+        nthSub=nthSub+1
+    *else
+        ! Sair do loop
+        FLAG=0
+    *endif
+*enddo
+
+! Escala da deformada determinada automaticamente
+ALLSEL
+ESEL,U,TYPE,,TYPE_LINK180
+ESEL,U,TYPE,,TYPE_BEAM188
+ESEL,U,TYPE,,TYPE_MASS21
+ESEL,U,TYPE,,TYPE_MPC184
+/dscale,ALL,AUTO
+
+!! 6.1.1   ÚLTIMO SUBSTEP A CONVERGIR                                                             !!
+!!                                                                                                !!
+! Ler último substep que convergiu
+SET,LSNum,LastSubstep
+
+! Plotar tensões de von Mises
+/show
+PLNSOL,S,EQV
+! Imagem: tensões de von Mises (toda a barra)
+PALV_TAKEPIC,'(last-VM)'
+! Plotar deslocamento em Z
+/show
+PLNSOL,U,Z
+! Imagem: deslocamento em Z (toda a barra)
+PALV_TAKEPIC,'(last-UZ)'
+! Plotar deformação principal e1
+/show
+PLNSOL,EPTO,1
+! Imagem: deformação principal e1 (toda a barra)
+PALV_TAKEPIC,'(last-e1)'
+
+! Ocultar mesas e enrijecedores
+ESEL,U,MAT,,MAT_MesaSup
+ESEL,U,MAT,,MAT_MesaInf
+ESEL,U,MAT,,MAT_Enrij
+
+! Plotar tensões de von Mises
+/show
+PLNSOL,S,EQV
+! Imagem: tensões de von Mises (apenas a alma)
+PALV_TAKEPIC,'(last-VMw)'
+! Plotar deslocamento em Z
+/show
+PLNSOL,U,Z
+! Imagem: deslocamento em Z (apenas a alma)
+PALV_TAKEPIC,'(last-UZw)'
+! Plotar deformação principal e1
+/show
+PLNSOL,EPTO,1
+! Imagem: deformação principal e1 (apenas a alma)
+PALV_TAKEPIC,'(last-e1w)'
+
+ALLSEL
+ESEL,U,TYPE,,TYPE_LINK180
+ESEL,U,TYPE,,TYPE_BEAM188
+ESEL,U,TYPE,,TYPE_MASS21
+ESEL,U,TYPE,,TYPE_MPC184
+
+!! 6.1.2   SUBSTEP DE MÁXIMO FATOR DE CARGA                                                       !!
+!!                                                                                                !!
+! Ler substep de máximo fator de carga
+SET,LSNum,MaxLFacSubstep
+
+! Plotar tensões de von Mises
+/show
+PLNSOL,S,EQV
+! Imagem: tensões de von Mises (toda a barra)
+PALV_TAKEPIC,'(max-VM)'
+! Plotar deslocamento em Z
+/show
+PLNSOL,U,Z
+! Imagem: deslocamento em Z (toda a barra)
+PALV_TAKEPIC,'(max-UZ)'
+! Plotar deformação principal e1
+/show
+PLNSOL,EPTO,1
+! Imagem: deformação principal e1 (toda a barra)
+PALV_TAKEPIC,'(max-e1)'
+
+! Ocultar mesas e enrijecedores
+ESEL,U,MAT,,MAT_MesaSup
+ESEL,U,MAT,,MAT_MesaInf
+ESEL,U,MAT,,MAT_Enrij
+
+! Plotar tensões de von Mises
+/show
+PLNSOL,S,EQV
+! Imagem: tensões de von Mises (apenas a alma)
+PALV_TAKEPIC,'(max-VMw)'
+! Plotar deslocamento em Z
+/show
+PLNSOL,U,Z
+! Imagem: deslocamento em Z (apenas a alma)
+PALV_TAKEPIC,'(max-UZw)'
+! Plotar deformação principal e1
+/show
+PLNSOL,EPTO,1
+! Imagem: deformação principal e1 (apenas a alma)
+PALV_TAKEPIC,'(max-e1w)'
+
+ALLSEL
+
+!! 6.1.3   DEFORMAÇÃO PRINCIPAL e1                                                                !!
+!!                                                                                                !!
+! Ler substep de máximo fator de carga
+SET,LSNum,MaxLFacSubstep
+
+! Obter o número do nó no qual a deformação total é máxima no substep lido
+*get,NodeCount,NODE,,COUNT
+nodeNum=0
+maxEPTO1=0
+*do,nthNode,1,NodeCount,1
+    nodeNum=NDNEXT(nodeNum)
+    *get,nodalEPTO1,NODE,nodeNum,EPTO,1
+    *if,nodalEPTO1,GT,maxEPTO1,THEN
+        peakEPTONode=nodeNum
+        maxEPTO1=nodalEPTO1
+    *endif
+*enddo
+
+! Reativar exibição automática
+/gopr
+ALLSEL
+/uis,REPLOT,1

@@ -1,0 +1,12 @@
+! PALV_TAKEPIC,imgSuffix
+! PALV_TAKEPIC,arg1
+
+! Alterar para diretório de imagens
+/cwd,'%bckFolderPath(1)%'
+! Nome do arquivo de imagem a ser salvo
+imgName=arg1
+! Fotografar deformada
+TAKEPIC,imgName,imgRes
+! Reverter para diretório principal
+/cwd,'%currDir(1)%'
+

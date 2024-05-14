@@ -1,0 +1,202 @@
+!! 5.1.1   CORRIGIR DIAGRAMA MULTILINEAR EM FUNÇÃO DO FATOR DE REDUÇÃO DE E                       !!
+!!                                                                                                !!
+! Mesa superior: Caso a lei tensão-deformação seja multilinear
+*if,MAT_MesaSup_law,EQ,2,AND,MAT_MesaSup_ptCount,GT,0,THEN
+   ! Tensão inicial (fim do ramo elástico)
+   sigma1=MAT_MesaSup_sVec(1)
+   ! Deformação inicial (fim do ramo elástico)
+   epsilon1=MAT_MesaSup_eVec(1)
+   ! Módulo de elasticidade calculado
+   E0=sigma1/epsilon1
+   ! Coeficiente de redução do módulo de elasticidade imposto
+   EModCoef=MAT_MesaSup_EX/E0
+   ! Caso o coeficiente de redução/aumento seja superior a 2%
+   *if,EModCoef,LE,0.98,OR,EModCoef,GE,1.02,THEN
+      ! Calcular o novo valor da deformação inicial
+      modE1=epsilon1/EModCoef
+      ! Deformação ao final do próximo segmento da lei
+      epsilon2=MAT_MesaSup_eVec(2)
+      ! Caso a deformação calculada seja superior à do início do próximo segmento
+      *if,modE1,GT,epsilon2,THEN
+         ! Calcular o fator de redução efetivo
+         actualEModCoef=epsilon1/epsilon2
+         ! Exibir mensagem informando o usuário de que o fator de redução foi modificado
+         *msg,WARN,MAT_MesaSup,EModCoef,actualEModCoef
+WARNING: Elastic modulus reduction coefficient for material %I %/&
+Required: %G %/&
+Actual: %G
+         ! Modificar o valor da deformação inicial
+         MAT_MesaSup_eVec(1)=epsilon2
+      *else
+         ! Modificar o valor da deformação inicial
+         MAT_MesaSup_eVec(1)=modE1
+      *endif
+   *endif
+*endif
+! Mesa inferior: Caso a lei tensão-deformação seja multilinear
+*if,MAT_MesaInf_law,EQ,2,AND,MAT_MesaInf_ptCount,GT,0,THEN
+   ! Tensão inicial (fim do ramo elástico)
+   sigma1=MAT_MesaInf_sVec(1)
+   ! Deformação inicial (fim do ramo elástico)
+   epsilon1=MAT_MesaInf_eVec(1)
+   ! Módulo de elasticidade calculado
+   E0=sigma1/epsilon1
+   ! Coeficiente de redução do módulo de elasticidade imposto
+   EModCoef=MAT_MesaInf_EX/E0
+   ! Caso o coeficiente de redução/aumento seja superior a 2%
+   *if,EModCoef,LE,0.98,OR,EModCoef,GE,1.02,THEN
+      ! Calcular o novo valor da deformação inicial
+      modE1=epsilon1/EModCoef
+      ! Deformação ao final do próximo segmento da lei
+      epsilon2=MAT_MesaInf_eVec(2)
+      ! Caso a deformação calculada seja superior à do início do próximo segmento
+      *if,modE1,GT,epsilon2,THEN
+         ! Calcular o fator de redução efetivo
+         actualEModCoef=epsilon1/epsilon2
+         ! Exibir mensagem informando o usuário de que o fator de redução foi modificado
+         *msg,WARN,MAT_MesaInf,EModCoef,actualEModCoef
+WARNING: Elastic modulus reduction coefficient for material %I %/&
+Required: %G %/&
+Actual: %G
+         ! Modificar o valor da deformação inicial
+         MAT_MesaInf_eVec(1)=epsilon2
+      *else
+         ! Modificar o valor da deformação inicial
+         MAT_MesaInf_eVec(1)=modE1
+      *endif
+   *endif
+*endif
+! Alma (metade superior): Caso a lei tensão-deformação seja multilinear
+*if,MAT_AlmaSup_law,EQ,2,AND,MAT_AlmaSup_ptCount,GT,0,THEN
+   ! Tensão inicial (fim do ramo elástico)
+   sigma1=MAT_AlmaSup_sVec(1)
+   ! Deformação inicial (fim do ramo elástico)
+   epsilon1=MAT_AlmaSup_eVec(1)
+   ! Módulo de elasticidade calculado
+   E0=sigma1/epsilon1
+   ! Coeficiente de redução do módulo de elasticidade imposto
+   EModCoef=MAT_AlmaSup_EX/E0
+   ! Caso o coeficiente de redução/aumento seja superior a 2%
+   *if,EModCoef,LE,0.98,OR,EModCoef,GE,1.02,THEN
+      ! Calcular o novo valor da deformação inicial
+      modE1=epsilon1/EModCoef
+      ! Deformação ao final do próximo segmento da lei
+      epsilon2=MAT_AlmaSup_eVec(2)
+      ! Caso a deformação calculada seja superior à do início do próximo segmento
+      *if,modE1,GT,epsilon2,THEN
+         ! Calcular o fator de redução efetivo
+         actualEModCoef=epsilon1/epsilon2
+         ! Exibir mensagem informando o usuário de que o fator de redução foi modificado
+         *msg,WARN,MAT_Alma,EModCoef,actualEModCoef
+WARNING: Elastic modulus reduction coefficient for material %I %/&
+Required: %G %/&
+Actual: %G
+         ! Modificar o valor da deformação inicial
+         MAT_AlmaSup_eVec(1)=epsilon2
+      *else
+         ! Modificar o valor da deformação inicial
+         MAT_AlmaSup_eVec(1)=modE1
+      *endif
+   *endif
+*endif
+! Alma (metade inferior): Caso a lei tensão-deformação seja multilinear
+*if,MAT_AlmaInf_law,EQ,2,AND,MAT_AlmaInf_ptCount,GT,0,THEN
+   ! Tensão inicial (fim do ramo elástico)
+   sigma1=MAT_AlmaInf_sVec(1)
+   ! Deformação inicial (fim do ramo elástico)
+   epsilon1=MAT_AlmaInf_eVec(1)
+   ! Módulo de elasticidade calculado
+   E0=sigma1/epsilon1
+   ! Coeficiente de redução do módulo de elasticidade imposto
+   EModCoef=MAT_AlmaInf_EX/E0
+   ! Caso o coeficiente de redução/aumento seja superior a 2%
+   *if,EModCoef,LE,0.98,OR,EModCoef,GE,1.02,THEN
+      ! Calcular o novo valor da deformação inicial
+      modE1=epsilon1/EModCoef
+      ! Deformação ao final do próximo segmento da lei
+      epsilon2=MAT_AlmaInf_eVec(2)
+      ! Caso a deformação calculada seja superior à do início do próximo segmento
+      *if,modE1,GT,epsilon2,THEN
+         ! Calcular o fator de redução efetivo
+         actualEModCoef=epsilon1/epsilon2
+         ! Exibir mensagem informando o usuário de que o fator de redução foi modificado
+         *msg,WARN,MAT_Alma,EModCoef,actualEModCoef
+WARNING: Elastic modulus reduction coefficient for material %I %/&
+Required: %G %/&
+Actual: %G
+         ! Modificar o valor da deformação inicial
+         MAT_AlmaInf_eVec(1)=epsilon2
+      *else
+         ! Modificar o valor da deformação inicial
+         MAT_AlmaInf_eVec(1)=modE1
+      *endif
+   *endif
+*endif
+! Enrijecedores de alma: Caso a lei tensão-deformação seja multilinear
+*if,MAT_Enrij_law,EQ,2,AND,MAT_Enrij_ptCount,GT,0,THEN
+   ! Tensão inicial (fim do ramo elástico)
+   sigma1=MAT_Enrij_sVec(1)
+   ! Deformação inicial (fim do ramo elástico)
+   epsilon1=MAT_Enrij_eVec(1)
+   ! Módulo de elasticidade calculado
+   E0=sigma1/epsilon1
+   ! Coeficiente de redução do módulo de elasticidade imposto
+   EModCoef=MAT_Enrij_EX/E0
+   ! Caso o coeficiente de redução/aumento seja superior a 2%
+   *if,EModCoef,LE,0.98,OR,EModCoef,GE,1.02,THEN
+      ! Calcular o novo valor da deformação inicial
+      modE1=epsilon1/EModCoef
+      ! Deformação ao final do próximo segmento da lei
+      epsilon2=MAT_Enrij_eVec(2)
+      ! Caso a deformação calculada seja superior à do início do próximo segmento
+      *if,modE1,GT,epsilon2,THEN
+         ! Calcular o fator de redução efetivo
+         actualEModCoef=epsilon1/epsilon2
+         ! Exibir mensagem informando o usuário de que o fator de redução foi modificado
+         *msg,WARN,MAT_Enrij,EModCoef,actualEModCoef
+WARNING: Elastic modulus reduction coefficient for material %I %/&
+Required: %G %/&
+Actual: %G
+         ! Modificar o valor da deformação inicial
+         MAT_Enrij_eVec(1)=epsilon2
+      *else
+         ! Modificar o valor da deformação inicial
+         MAT_Enrij_eVec(1)=modE1
+      *endif
+   *endif
+*endif
+! Enrijecedores de abertura: Caso a lei tensão-deformação seja multilinear
+*if,MAT_OpEnrij_law,EQ,2,AND,MAT_OpEnrij_ptCount,GT,0,THEN
+   ! Tensão inicial (fim do ramo elástico)
+   sigma1=MAT_OpEnrij_sVec(1)
+   ! Deformação inicial (fim do ramo elástico)
+   epsilon1=MAT_OpEnrij_eVec(1)
+   ! Módulo de elasticidade calculado
+   E0=sigma1/epsilon1
+   ! Coeficiente de redução do módulo de elasticidade imposto
+   EModCoef=MAT_OpEnrij_EX/E0
+   ! Caso o coeficiente de redução/aumento seja superior a 2%
+   *if,EModCoef,LE,0.98,OR,EModCoef,GE,1.02,THEN
+      ! Calcular o novo valor da deformação inicial
+      modE1=epsilon1/EModCoef
+      ! Deformação ao final do próximo segmento da lei
+      epsilon2=MAT_OpEnrij_eVec(2)
+      ! Caso a deformação calculada seja superior à do início do próximo segmento
+      *if,modE1,GT,epsilon2,THEN
+         ! Calcular o fator de redução efetivo
+         actualEModCoef=epsilon1/epsilon2
+         ! Exibir mensagem informando o usuário de que o fator de redução foi modificado
+         *msg,WARN,MAT_OpEnrij,EModCoef,actualEModCoef
+WARNING: Elastic modulus reduction coefficient for material %I %/&
+Required: %G %/&
+Actual: %G
+         ! Modificar o valor da deformação inicial
+         MAT_OpEnrij_eVec(1)=epsilon2
+      *else
+         ! Modificar o valor da deformação inicial
+         MAT_OpEnrij_eVec(1)=modE1
+      *endif
+   *endif
+*endif
+
+

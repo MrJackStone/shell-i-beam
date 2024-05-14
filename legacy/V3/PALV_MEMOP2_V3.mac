@@ -1,0 +1,276 @@
+
+!!                                                                                                !!
+!! 6.4   ESCREVER MEMORIAL DE CÁLCULO                                                             !!
+!!                                                                                                !!
+
+!! 6.4.1   COLETAR DADOS COMPLEMENTARES                                                           !!
+!!                                                                                                !!
+ALLSEL
+
+! Obter data atual
+*get,currentDate,ACTIVE,,DATE
+currDay=MOD(currentDate,100)
+currMonth=(MOD(currentDate,10000)-currDay)/100
+currYear=(currentDate-currMonth*100-currDay)/10000
+
+! Obter hora atual
+CTIME
+currentClock=_OUTPUT
+
+! Obter hora atual
+*get,currentTime,ACTIVE,,TIME,WALL
+
+! Calcular tempo decorrido durante a análise
+ElapsedTime=currentTime-initTime
+ElapsedTime=ElapsedTime*60
+
+! Corrigir o fator de carga em função do tempo inicial da análise
+correctedLambda=lambda-startTime
+correctedLastLambda=LastLambda-startTime
+
+!! 6.4.2   CRIAR ARQUIVO DE MEMORIAL DE CÁLCULO                                                   !!
+!!                                                                                                !!
+
+! Alterar para diretório de resultados
+/cwd,'%resFolderPath(1)%'
+
+! Criar arquivo de memorial de dados
+*cfopen,MemoFileName(1),'memo',,APPEND
+
+   !! 6.4.2.12  RESULTADOS                                                                        !!
+   ! Título da seção
+   *vwrite,
+   ('RESULTS')
+   ! Número do último substep que convergiu
+   *vwrite,LastSubstep
+   (';   Conv. Substeps        = ',F6.0,TL1,' ')
+   ! Máximo fator de carga
+   *vwrite,correctedLambda
+   (';   Max. load factor      = ',E12.5)
+   ! Último fator de carga que convergiu
+   *vwrite,correctedLastLambda
+   (';   Last load factor      = ',E12.5)
+   ! Deformação principal e1 no substep de máxima carga
+   *if,OutresLast,EQ,0,THEN
+      EPPL_maxLFac=PKNode_EPPL(MaxLFacSubstep)
+      *vwrite,EPPL_maxLFac
+      (';   Max. plastic strain   = ',E12.5)
+      ! Ddeformação principal e1 no último substep a convergir
+      EPPL_lastLFac=PKNode_EPPL(LastSubstep)
+      *vwrite,EPPL_lastLFac
+      (';   Last plastic strain   = ',E12.5)
+   *endif
+   ! Resultados da flexão de 4 pontos
+   *if,LoadType1,EQ,1,THEN
+      *vwrite,
+      (';   FOUR POINT BENDING')
+      *vwrite,Total4PointLoad*correctedLambda
+      (';      Max. applied force = ',E12.5)
+      *vwrite,Total4PointLoad*correctedLastLambda
+      (';      Last applied force = ',E12.5)
+      *vabs,1,1,1,1
+      *vscfun,MaxUY1,MAX,FNode1_YDisp
+      *vwrite,MaxUY1
+      (';      Max. Y Disp. (N1)  = ',E12.5)
+      *vabs,1,1,1,1
+      *vscfun,MaxUY2,MAX,FNode2_YDisp
+      *vwrite,MaxUY2
+      (';      Max. Y Disp. (N2)  = ',E12.5)
+   *endif
+
+   ! Resultados carga distribuída
+   *if,LoadType2,GE,1,THEN
+      *vwrite,
+      (';   DISTRIBUTED LOAD')
+      ! Calcular válores máximos e últimos das cargas distribuídas
+      *del,MAXValBeg
+      *voper,MAXValBeg,DL_ValueBeg,MULT,correctedLambda
+      *del,MAXValEnd
+      *voper,MAXValEnd,DL_ValueEnd,MULT,correctedLambda
+      *del,LSTValBeg
+      *voper,LSTValBeg,DL_ValueBeg,MULT,correctedLastLambda
+      *del,LSTValEnd
+      *voper,LSTValEnd,DL_ValueEnd,MULT,correctedLastLambda
+      ! Escrever valores máximos
+      *vwrite,
+      (';      Max. applied force = ',\b)
+      rowCounter=0
+      *do,nthDL,1,LoadType2,1
+         rowCounter=rowCounter+1
+         *if,rowCounter,EQ,6,THEN
+            *vwrite,
+            (' ')
+            *vwrite,
+            (';                           ',\b)
+            rowCounter=0
+         *endif
+         nthBeg=MAXValBeg(nthDL)
+         nthEnd=MAXValEnd(nthDL)
+         *vwrite,nthBeg,nthEnd
+         (E12.5,' ~ ',E12.5,'; ',\b)
+      *enddo
+      *vwrite,
+      (' ')
+      ! Escrever valores últimos
+      *vwrite,
+      (';      Last applied force = ',\b)
+      rowCounter=0
+      *do,nthDL,1,LoadType2,1
+         rowCounter=rowCounter+1
+         *if,rowCounter,EQ,10,THEN
+            *vwrite,
+            (' ')
+            *vwrite,
+            (';                           ',\b)
+            rowCounter=0
+         *endif
+         nthBeg=LSTValBeg(nthDL)
+         nthEnd=LSTValEnd(nthDL)
+         *vwrite,nthBeg,nthEnd
+         (E12.5,' ~ ',E12.5,'; ',\b)
+      *enddo
+      *vwrite,
+      (' ')
+      *vabs,1,1,1,1
+      *vscfun,MaxUY4,MAX,FNode4_YDisp
+      *vwrite,MaxUY4
+      (';      Max. Y Disp. (N4)  = ',E12.5)
+   *endif
+
+   ! Resultados da carga concentrada
+   *if,LoadType3,GE,1,THEN
+      *vwrite,
+      (';   POINT LOAD')
+      ! Calcular válores máximos e últimos das cargas distribuídas
+      *del,MAXVal
+      *voper,MAXVal,PL_Value,MULT,correctedLambda
+      *del,LSTVal
+      *voper,LSTVal,PL_Value,MULT,correctedLastLambda
+      ! Escrever valores máximos
+      *vwrite,
+      (';      Max. applied force = ',\b)
+      rowCounter=0
+      *do,nthPL,1,LoadType3,1
+         rowCounter=rowCounter+1
+         *if,rowCounter,EQ,11,THEN
+            *vwrite,
+            (' ')
+            *vwrite,
+            (';                           ',\b)
+            rowCounter=0
+         *endif
+         nthVal=MAXVal(nthPL)
+         *vwrite,nthVal
+         (E12.5,'; ',\b)
+      *enddo
+      *vwrite,
+      (' ')
+      ! Escrever valores últimos
+      *vwrite,
+      (';      Last applied force = ',\b)
+      rowCounter=0
+      *do,nthPL,1,LoadType3,1
+         rowCounter=rowCounter+1
+         *if,rowCounter,EQ,11,THEN
+            *vwrite,
+            (' ')
+            *vwrite,
+            (';                           ',\b)
+            rowCounter=0
+         *endif
+         nthVal=LSTVal(nthPL)
+         *vwrite,nthVal
+         (E12.5,'; ',\b)
+      *enddo
+      *vwrite,
+      (' ')
+      *vabs,1,1,1,1
+      *vscfun,MaxUY3,MAX,FNode3_YDisp
+      *vwrite,MaxUY3
+      (';      Max. Y Disp. (N3)  = ',E12.5)
+   *endif
+
+   ! Resultados carga de compressão axial
+   *if,LoadType4,EQ,1,THEN
+      *vwrite,
+      (';   AXIAL COMPRESSION')
+      *vwrite,CompressiveForce*correctedLambda
+      (';      Max. applied force = ',E12.5)
+      *vwrite,CompressiveForce*correctedLastLambda
+      (';      Last applied force = ',E12.5)
+      *vabs,1,1,1,1
+      *vscfun,MaxUX5,MAX,FNode5_XDisp
+      *vwrite,MaxUX5
+      (';      Max. X Disp. (N5)  = ',E12.5)
+   *endif
+
+   ! Resultados carga de momento fletor em torno de Z nas extremidades
+   *if,LoadType5,EQ,1,THEN
+      *vwrite,
+      (';   Z BENDING MOMENT')
+      *vwrite,ZBendingMomentLS*correctedLambda
+      (';      Max. mom. (LS)     = ',E12.5)
+      *vwrite,ZBendingMomentRS*correctedLambda
+      (';      Max. mom. (RS)     = ',E12.5)
+      *vwrite,ZBendingMomentLS*correctedLastLambda
+      (';      Last mom. (LS)     = ',E12.5)
+      *vwrite,ZBendingMomentRS*correctedLastLambda
+      (';      Last mom. (RS)     = ',E12.5)
+      *vabs,1,1,1,1
+      *vscfun,MaxRZ6,MAX,FNode6_ZRot
+      *vwrite,MaxRZ6
+      (';      Max. Z Rot. (N6)   = ',E12.5)
+      *vabs,1,1,1,1
+      *vscfun,MaxRZ7,MAX,FNode7_ZRot
+      *vwrite,MaxRZ7
+      (';      Max. Z Rot. (N7)   = ',E12.5)
+   *endif
+
+   ! Resultados carga de momento fletor em torno de Y nas extremidades
+   *if,LoadType6,EQ,1,THEN
+      *vwrite,
+      (';   Y BENDING MOMENT')
+      *vwrite,YBendingMomentLS*correctedLambda
+      (';      Max. mom. (LS)     = ',E12.5)
+      *vwrite,YBendingMomentRS*correctedLambda
+      (';      Max. mom. (RS)     = ',E12.5)
+      *vwrite,YBendingMomentLS*correctedLastLambda
+      (';      Last mom. (LS)     = ',E12.5)
+      *vwrite,YBendingMomentRS*correctedLastLambda
+      (';      Last mom. (RS)     = ',E12.5)
+      *vabs,1,1,1,1
+      *vscfun,MaxRY6,MAX,FNode6_YRot
+      *vwrite,MaxRY6
+      (';      Max. Y Rot. (N6)   = ',E12.5)
+      *vabs,1,1,1,1
+      *vscfun,MaxRY7,MAX,FNode7_YRot
+      *vwrite,MaxRY7
+      (';      Max. Y Rot. (N7)   = ',E12.5)
+   *endif
+
+   ! Saltar linhas
+   *vwrite,
+   (' ')
+   *vwrite,
+   (' ')
+
+   !! 6.4.2.13  DATA, HORA E TEMPO DE EXECUÇÃO                                                    !!
+   ! Título da seção
+   *vwrite,
+   ('CLOCK')
+   ! Data de término da análise
+   *vwrite,currYear,currMonth,currDay
+   (';   DATE    = ',F5.0,TL1,'/',F3.0,TL1,'/',F3.0,TL1,' ')
+   ! Hora do término da análise
+   *vwrite,currentClock
+   (';   TIME    = ',A8)
+   ! Tempo decorrido durante a análise
+   *vwrite,ElapsedTime
+   (';   ELAPSED = ',F8.3,' min')
+
+*cfclos
+
+! Reverter para diretório principal
+/cwd,'%currDir(1)%'
+
+

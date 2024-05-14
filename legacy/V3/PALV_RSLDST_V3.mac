@@ -1,0 +1,88 @@
+
+!!                                                                                                !!
+!! 5.3   TENSÕES RESIDUAIS                                                                        !!
+!!                                                                                                !!
+! Calcular valores da distribuição de tensões residuais
+PALV_RSVAL_V3
+
+! Criar componente com os nós das mesas
+ALLSEL
+NSEL,S,LOC,Y,VIGA_y0
+NSEL,A,LOC,Y,VIGA_y0+VIGA_dm
+CM,CM_FlangeNodes,NODE
+! Obter número de nós das mesas
+*get,flangeNodeCount,NODE,,COUNT
+
+! Criar componente com os nós da alma
+ALLSEL
+NSEL,S,LOC,Y,VIGA_y0+yOpLine+(VIGA_d0/2),VIGA_y0+VIGA_dm
+NSEL,A,LOC,Y,VIGA_y0,VIGA_y0+VIGA_dtmi
+NSEL,R,LOC,Z,VIGA_z0
+NSEL,U,LOC,Y,VIGA_y0
+NSEL,U,LOC,Y,VIGA_y0+VIGA_dm
+CM,CM_WebNodes,NODE
+! Obter número de nós da alma
+*get,webNodeCount,NODE,,COUNT
+
+! Calcular incrementos de tensões residuais
+LS_sExtWebIncrement=sExtWeb/resLoadSteps
+LS_sMidWebIncrement=sMidWeb/resLoadSteps
+LS_sExtOpIncrement=sExtOp/resLoadSteps
+LS_sMidOpIncrement=sMidOp/resLoadSteps
+LS_sWebIncrement=sWeb/resLoadSteps
+
+ALLSEL
+*do,nthRSLS,1,resLoadSteps
+
+   ! Limpar opções de solução do load step
+   LSCLEAR,ALL
+
+   ! Definir as opções de solução
+   ANTYPE,0,NEW
+   ARCLEN,OFF
+   NROPT,AUTO
+   NLGEOM,LargeDisp
+   NSUBST,resLoadSteps*100,resLoadSteps*200
+   OUTRES,ERASE
+   OUTRES,ALL,ALL
+
+   ! Criar apoios
+   ALLSEL
+   Node1=NODE(VIGA_x0,VIGA_y0,VIGA_z0)
+   Node2=NODE(VIGA_x0,VIGA_y0+VIGA_dm,VIGA_z0)
+   Node3=NODE(VIGA_x0+VIGA_L,VIGA_y0,VIGA_z0)
+   Node4=NODE(VIGA_x0+VIGA_L,VIGA_y0+VIGA_dm,VIGA_z0)
+   D,Node1,UX,0,,,,UY,UZ
+   D,Node2,UY,0,,,,UZ
+   D,Node3,UY,0,,,,UZ
+   D,Node4,UY,0,,,,UZ
+
+   ! Aplicar carga
+   ALLSEL
+   LoadNode=NODE(VIGA_x0+VIGA_L,VIGA_y0+yOpLine,VIGA_z0)
+   !F,LoadNode,FX,100
+
+   ! Definições para introdução de tensões residuais
+   INISTATE,SET,CSYS,-2
+   INISTATE,SET,DTYP,STRE
+   INISTATE,SET,NODE,1
+
+   ! Calcular o valor das tensões residuais neste load step
+   LS_sExtWeb=LS_sExtWebIncrement*nthRSLS
+   LS_sMidWeb=LS_sMidWebIncrement*nthRSLS
+   LS_sExtOp=LS_sExtOpIncrement*nthRSLS
+   LS_sMidOp=LS_sMidOpIncrement*nthRSLS
+   LS_sWeb=LS_sWebIncrement*nthRSLS
+
+   ! Aplicar tensões residuais
+   PALV_INIST_V3
+   ALLSEL
+
+   ! Salvar load step
+   TIME,nthRSLS
+   KBC,0
+   NCNV,0,1e10,SubstepCount*100
+   LSWRITE,nthRSLS
+
+*enddo
+

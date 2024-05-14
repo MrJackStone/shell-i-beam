@@ -1,0 +1,87 @@
+
+!! 4.1.2   CARGA HORIZONTAL                                                                       !!
+!!                                                                                                !!
+*if,GeomImperf2,NE,0,THEN
+
+   ! Renomear arquivo
+   FINISH
+   /filname,'GI2FName',1
+
+   ! Carregar modelo
+   /prep7
+   RESUME,'BaseModel',,,0,1
+
+   ! Inicializar load step
+   /solu
+   ANTYPE,0
+   LSCLEAR,ALL
+   NLGEOM,OFF
+   ALLSEL
+   SELTOL,1e-8
+
+   ! Aplicar carga
+   NSEL,S,LOC,Y,VIGA_y0
+   NSEL,A,LOC,Y,VIGA_y0+VIGA_dm
+   NSEL,R,LOC,Z,VIGA_z0+(VIGA_bf/2)
+   *get,NodeCount,NODE,0,COUNT
+   NodalLoad=GeomImperfLoad*VIGA_L/NodeCount
+   F,ALL,FZ,NodalLoad
+
+   ! Apoio esquerdo
+   ! Criar componente com nós do apoio esquerdo
+   NSEL,S,LOC,X,VIGA_x0
+   CM,COMPN_Esq,NODE
+   ! Apoio tipo garfo
+   D,COMPN_Esq,UY,0,,,,UZ,ROTX
+   ! Restringir deslocamento longitudinal
+   NSEL,R,LOC,Y,VIGA_y0+(VIGA_dm/2)
+   *get,CenterNode_ESQ,NODE,0,NUM,MIN
+   D,CenterNode_ESQ,UX,0
+
+   ! Apoio direito
+   ! Criar componente com nós do apoio direito
+   NSEL,S,LOC,X,viga_x0+VIGA_L
+   CM,COMPN_Dir,NODE
+   ! Apoio tipo garfo
+   D,COMPN_Dir,UY,0,,,,UZ,ROTX
+
+   ! Solucionar load step
+   ALLSEL
+   SOLVE
+
+   ! Ler resultados
+   /post1
+   ALLSEL
+   SET,FIRST
+
+   ! Plotar deformada
+   /show
+   PLNSOL,U,SUM
+
+   ! Imagem: deformada da imperfeição geométrica tipo 2
+   PALV_TAKEPIC,'(I2)'
+
+   ! Selecionar nós das interfaces entre alma e mesas
+   NSEL,S,LOC,Y,VIGA_y0
+   NSEL,A,LOC,Y,VIGA_y0+VIGA_dm
+   NSEL,R,LOC,Z,VIGA_z0
+   *get,NodeCount,NODE,0,COUNT
+   nthNode=0
+   maxZDisp=0
+   ! Obter máximo deslocamento em Z (módulo)
+   *do,i,1,NodeCount,1
+      nthNode=NDNEXT(nthNode)
+      *get,zDisp,NODE,nthNode,U,Z
+      zDisp=ABS(zDisp)
+      *if,zDisp,GT,maxZDisp,THEN
+         maxZDisp=zDisp
+      *endif
+   *enddo
+
+   ! Calcular o fator de introdução da imperfeição geométrica tipo 2
+   UpGeomFactor2=GeomImperf2/maxZDisp
+
+   ALLSEL
+   FINISH
+*endif
+

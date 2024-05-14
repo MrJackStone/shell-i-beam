@@ -1,0 +1,134 @@
+! Criar arquivo com registro de valor de variáveis necessárias
+*cfopen,'VARREC','dat'
+   *vwrite,CodeVersion
+   ('CodeVersion     =',F6.1)
+   *vwrite,FileName(1)
+FileName        = '%C'
+
+   ! Flexão de quatro pontos
+   *vwrite,LoadType1
+   ('LoadType1       =',F20.1)
+   *vwrite,Total4PointLoad
+   ('Total4PointLoad =',E20.8)
+   ! Carga distribuída
+   *if,LoadType2,GE,1,THEN
+      *vwrite,LoadType2
+      ('LoadType2       =',F20.1)
+      *do,nthDL,1,LoadType2,1
+         nthValBeg=DL_ValueBeg(nthDL)
+         nthValEnd=DL_ValueEnd(nthDL)
+         *vwrite,nthValBeg
+         ('DL_ValueBeg     =',E20.8)
+         *vwrite,nthValEnd
+         ('DL_ValueEnd     =',E20.8)
+      *enddo
+   *else
+      *vwrite,0
+      ('LoadType2       =',F20.1)
+   *endif
+
+   ! Carga concentrada
+   *if,LoadType3,GE,1,THEN
+      *vwrite,LoadType3
+      ('LoadType3       =',F20.1)
+      *do,nthPL,1,LoadType3,1
+         nthVal=PL_Value(nthPL)
+         *vwrite,nthVal
+         ('PL_Value     =',E20.8)
+      *enddo
+   *else
+      *vwrite,0
+      ('LoadType3       =',F20.1)
+   *endif
+
+   ! Compressão axial
+   *vwrite,LoadType4
+   ('LoadType4       =',F20.1)
+   *vwrite,CompressiveForce
+   ('CompressiveForce=',E20.8)
+
+   ! Momento fletor em torno do eixo Z
+   *vwrite,LoadType5
+   ('LoadType5       =',F20.1)
+   *vwrite,ZBendingMomentLS
+   ('ZBendingMomentLS =',E20.8)
+   *vwrite,ZBendingMomentRS
+   ('ZBendingMomentRS =',E20.8)
+
+   ! Momento fletor em torno do eixo Y
+   *vwrite,LoadType6
+   ('LoadType6       =',F20.1)
+   *vwrite,YBendingMomentLS
+   ('YBendingMomentLS =',E20.8)
+   *vwrite,YBendingMomentRS
+   ('YBendingMomentRS =',E20.8)
+
+   ! Número de load steps
+   *vwrite,LoadStepCount
+   ('LoadStepCount   =',F20.1)
+*cfclos
+
+! Obter número de nós de resultado
+*get,RNCount,PARM,ResultsNodes,DIM,1
+! Calcular número de grupos de nó de resultado (por posição X)
+RNGroupCount=RNCount/3
+*if,RNGroupCount,GT,6,THEN
+   ! Limitar o número de posições em X em função do número máximo de variáveis que
+   ! o comando NLHIST tem a capacidade de monitorar
+   RNGroupCount=6
+*endif
+
+! Para cada grupo (por posição X) de nós:
+*do,nthNodeGroup,1,RNGroupCount,1
+
+   ! Obter número dos nós (mesa inferior, metade da alma, mesa superior)
+   BotNode=ResultsNodes(nthNodeGroup*3-2)
+   MidNode=ResultsNodes(nthNodeGroup*3-1)
+   TopNode=ResultsNodes(nthNodeGroup*3)
+
+   ! Obter strings de identificação da posição e do grau de liberdade do nó
+   xPosID=RESULTS_XPos_ID(nthNodeGroup)
+   yPosBot=RESULTS_YPos_ID(1)
+   yPosMid=RESULTS_YPos_ID(2)
+   yPosTop=RESULTS_YPos_ID(3)
+   DOFUX=RESULTS_DOF_ID(1)
+   DOFUY=RESULTS_DOF_ID(2)
+   DOFUZ=RESULTS_DOF_ID(3)
+   DOFRZ=RESULTS_DOF_ID(4)
+
+   ! Gerar nomes das variáveis (identificador do grau de liberdade e da posição do nó)
+   str1=STRCAT(xPosID,'_')
+   ! Nó da mesa inferior
+   str2=STRCAT(str1,yPosBot)
+   str3=STRCAT(str2,'_')
+   BotUYName=STRCAT(str3,DOFUY)
+   BotUZName=STRCAT(str3,DOFUZ)
+   ! Nó da metade da altura da alma
+   str2=STRCAT(str1,yPosMid)
+   str3=STRCAT(str2,'_')
+   MidUXName=STRCAT(str3,DOFUX)
+   MidUYName=STRCAT(str3,DOFUY)
+   MidUZName=STRCAT(str3,DOFUZ)
+   MidRZName=STRCAT(str3,DOFRZ)
+   ! Nó da mesa superior
+   str2=STRCAT(str1,yPosTop)
+   str3=STRCAT(str2,'_')
+   TopUYName=STRCAT(str3,DOFUY)
+   TopUZName=STRCAT(str3,DOFUZ)
+
+   ! Registrar graus de liberdade a monitorar:
+   ! Mesa inferior
+   NLHIST,NSOL,BotUYName,U,Y,BotNode
+   NLHIST,NSOL,BotUZName,U,Z,BotNode
+   ! Metade da altura da alma
+   NLHIST,NSOL,MidUXName,U,X,MidNode
+   NLHIST,NSOL,MidUYName,U,Y,MidNode
+   NLHIST,NSOL,MidUZName,U,Z,MidNode
+   NLHIST,NSOL,MidRZName,ROT,Z,MidNode
+   ! Mesa superior
+   NLHIST,NSOL,TopUYName,U,Y,TopNode
+   NLHIST,NSOL,TopUZName,U,Z,TopNode
+
+*enddo
+
+

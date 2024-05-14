@@ -1,0 +1,181 @@
+
+!!                                                                                                !!
+!! 6.4   ESCREVER MEMORIAL DE CÁLCULO                                                             !!
+!!                                                                                                !!
+
+!! 6.4.1   COLETAR DADOS COMPLEMENTARES                                                           !!
+!!                                                                                                !!
+ALLSEL
+
+! Obter data atual
+*get,currentDate,ACTIVE,,DATE
+currDay=MOD(currentDate,100)
+currMonth=(MOD(currentDate,10000)-currDay)/100
+currYear=(currentDate-currMonth*100-currDay)/10000
+
+! Obter hora atual
+CTIME
+currentClock=_OUTPUT
+
+! Obter hora atual
+*get,currentTime,ACTIVE,,TIME,WALL
+
+! Calcular tempo decorrido durante a análise
+ElapsedTime=currentTime-initTime
+ElapsedTime=ElapsedTime*60
+
+! Corrigir o fator de carga em função do tempo inicial da análise
+correctedLambda=lambda-startTime
+correctedLastLambda=LastLambda-startTime
+
+!! 6.4.2   CRIAR ARQUIVO DE MEMORIAL DE CÁLCULO                                                   !!
+!!                                                                                                !!
+
+! Alterar para diretório de resultados
+/cwd,'%resFolderPath(1)%'
+
+! Criar arquivo de memorial de dados
+*cfopen,MemoFileName(1),'memo',,APPEND
+
+   !! 6.4.2.12  RESULTADOS                                                                        !!
+   ! Título da seção
+   *vwrite,
+   ('RESULTS')
+   ! Número do último substep que convergiu
+   *vwrite,LastSubstep
+   (';   Conv. Substeps        = ',F6.0,TL1,' ')
+   ! Máximo fator de carga
+   *vwrite,correctedLambda
+   (';   Max. load factor      = ',E12.5)
+   ! Último fator de carga que convergiu
+   *vwrite,correctedLastLambda
+   (';   Last load factor      = ',E12.5)
+   ! Deformação principal e1 no substep de máxima carga
+   *if,OutresLast,EQ,0,THEN
+      EPPL_maxLFac=PKNode_EPPL(MaxLFacSubstep)
+      *vwrite,EPPL_maxLFac
+      (';   Max. plastic strain   = ',E12.5)
+      ! Ddeformação principal e1 no último substep a convergir
+      EPPL_lastLFac=PKNode_EPPL(LastSubstep)
+      *vwrite,EPPL_lastLFac
+      (';   Last plastic strain   = ',E12.5)
+   *endif
+   ! Resultados da flexão de 4 pontos
+   *if,LoadType1,EQ,1,THEN
+      *vwrite,
+      (';   FOUR POINT BENDING')
+      *vwrite,Total4PointLoad*correctedLambda
+      (';      Max. applied force = ',E12.5)
+      *vwrite,Total4PointLoad*correctedLastLambda
+      (';      Last applied force = ',E12.5)
+      *vabs,1,1,1,1
+      *vscfun,MaxUY1,MAX,FNode1_YDisp
+      *vwrite,MaxUY1
+      (';      Max. Y Disp. (N1)  = ',E12.5)
+      *vabs,1,1,1,1
+      *vscfun,MaxUY2,MAX,FNode2_YDisp
+      *vwrite,MaxUY2
+      (';      Max. Y Disp. (N2)  = ',E12.5)
+   *endif
+   ! Resultados carga uniformemente distribuída
+   *if,LoadType2,EQ,1,THEN
+      *vwrite,
+      (';   UNIFORM LOAD')
+      *vwrite,DistributedLoad*correctedLambda
+      (';      Max. applied force = ',E12.5)
+      *vwrite,DistributedLoad*correctedLastLambda
+      (';      Last applied force = ',E12.5)
+      *vabs,1,1,1,1
+      *vscfun,MaxUY4,MAX,FNode4_YDisp
+      *vwrite,MaxUY4
+      (';      Max. Y Disp. (N4)  = ',E12.5)
+   *endif
+   ! Resultados da carga concentrada
+   *if,LoadType3,EQ,1,THEN
+      *vwrite,
+      (';   POINT LOAD')
+      *vwrite,PointLoadValue*correctedLambda
+      (';      Max. applied force = ',E12.5)
+      *vwrite,PointLoadValue*correctedLastLambda
+      (';      Last applied force = ',E12.5)
+      *vabs,1,1,1,1
+      *vscfun,MaxUY3,MAX,FNode3_YDisp
+      *vwrite,MaxUY3
+      (';      Max. Y Disp. (N3)  = ',E12.5)
+   *elseif,LoadType3,GT,1,THEN
+      *vwrite,
+      (';   POINT LOAD')
+      *do,nthLoad,1,LoadType3,1
+         loadVal=PointLoadValue(nthLoad)
+         *vwrite,nthLoad
+         (';      Index              = ',F7.0,TL1,' ')
+         *vwrite,loadVal*correctedLambda
+         (';      Max. applied force = ',E12.5)
+         *vwrite,loadVal*correctedLastLambda
+         (';      Last applied force = ',E12.5)
+      *enddo
+      *vabs,1,1,1,1
+      *vscfun,MaxUY3,MAX,FNode3_YDisp
+      *vwrite,MaxUY3
+      (';      Max. Y Disp. (N3)  = ',E12.5)
+   *endif
+   ! Resultados carga de compressão axial
+   *if,LoadType4,EQ,1,THEN
+      *vwrite,
+      (';   AXIAL COMPRESSION')
+      *vwrite,CompressiveForce*correctedLambda
+      (';      Max. applied force = ',E12.5)
+      *vwrite,CompressiveForce*correctedLastLambda
+      (';      Last applied force = ',E12.5)
+      *vabs,1,1,1,1
+      *vscfun,MaxUX5,MAX,FNode5_XDisp
+      *vwrite,MaxUX5
+      (';      Max. X Disp. (N5)  = ',E12.5)
+   *endif
+   ! Resultados carga de momento fletor nas extremidades
+   *if,LoadType5,EQ,1,THEN
+      *vwrite,
+      (';   BENDING MOMENT')
+      *vwrite,BendingMomentLS*correctedLambda
+      (';      Max. mom. (LS)     = ',E12.5)
+      *vwrite,BendingMomentRS*correctedLambda
+      (';      Max. mom. (RS)     = ',E12.5)
+      *vwrite,BendingMomentLS*correctedLastLambda
+      (';      Last mom. (LS)     = ',E12.5)
+      *vwrite,BendingMomentRS*correctedLastLambda
+      (';      Last mom. (RS)     = ',E12.5)
+      *vabs,1,1,1,1
+      *vscfun,MaxRZ6,MAX,FNode6_ZRot
+      *vwrite,MaxRZ6
+      (';      Max. Z Rot. (N6)   = ',E12.5)
+      *vabs,1,1,1,1
+      *vscfun,MaxRZ7,MAX,FNode7_ZRot
+      *vwrite,MaxRZ7
+      (';      Max. Z Rot. (N7)   = ',E12.5)
+   *endif
+
+   ! Saltar linhas
+   *vwrite,
+   (' ')
+   *vwrite,
+   (' ')
+
+   !! 6.4.2.13  DATA, HORA E TEMPO DE EXECUÇÃO                                                    !!
+   ! Título da seção
+   *vwrite,
+   ('CLOCK')
+   ! Data de término da análise
+   *vwrite,currYear,currMonth,currDay
+   (';   DATE    = ',F5.0,TL1,'/',F3.0,TL1,'/',F3.0,TL1,' ')
+   ! Hora do término da análise
+   *vwrite,currentClock
+   (';   TIME    = ',A8)
+   ! Tempo decorrido durante a análise
+   *vwrite,ElapsedTime
+   (';   ELAPSED = ',F8.3,' min')
+
+*cfclos
+
+! Reverter para diretório principal
+/cwd,'%currDir(1)%'
+
